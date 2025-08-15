@@ -1,0 +1,83 @@
+name: Publish main (versions + latest + site meta)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "resume_faangpath.tex"
+      - "resume.cls"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  ROOT_TEX: resume_faangpath.tex
+  OUT_DIR: build
+  SITE_BRANCH: gh-pages
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build PDF
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: ${{ env.ROOT_TEX }}
+          latexmk_use_xelatex: true
+          work_in_root_file_dir: true
+          extra_system_packages: "fontconfig"
+          cache: true
+
+      - name: Prep assets
+        id: meta
+        run: |
+          mkdir -p "$OUT_DIR"
+          cp "${ROOT_TEX%.tex}.pdf" "$OUT_DIR/resume.pdf"
+          echo "shortsha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+          echo "dateslug=$(date -u +%Y-%m-%d_%H-%M-%S)" >> $GITHUB_OUTPUT
+
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SITE_BRANCH }}
+          path: site
+          fetch-depth: 0
+
+      - name: Add new version + update latest + gh.json
+        run: |
+          VS="versions/${{ steps.meta.outputs.dateslug }}-${{ steps.meta.outputs.shortsha }}"
+          mkdir -p "site/$VS" "site/latest"
+          cp "$OUT_DIR/resume.pdf" "site/$VS/resume.pdf"
+          rm -f "site/latest/resume.pdf"
+          ln -s "../$VS/resume.pdf" "site/latest/resume.pdf" 2>/dev/null || cp "site/$VS/resume.pdf" "site/latest/resume.pdf"
+
+          # Build gh.json for homepage
+          (
+            cd site
+            printf '{ "latest": "%s", "versions": [' "${{ steps.meta.outputs.shortsha }}"
+            first=1
+            for d in $(ls -1d versions/* 2>/dev/null | sort -r); do
+              t=$(basename "$d")
+              if [ $first -eq 0 ]; then printf ', '; fi
+              printf '{ "tag": "%s" }' "$t"; first=0
+            done
+            printf '] }' > gh.json
+          )
+
+          # Harden
+          echo "User-agent: *" > site/robots.txt
+          echo "Allow: /" >> site/robots.txt
+          touch site/.nojekyll
+
+      - name: Commit & push
+        run: |
+          cd site
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Publish ${{ steps.meta.outputs.dateslug }}-${{ steps.meta.outputs.shortsha }}" || echo "No changes"
+          git push origin ${{ env.SITE_BRANCH }}
