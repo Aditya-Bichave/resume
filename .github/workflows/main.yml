@@ -1,0 +1,87 @@
+name: Build Resume PDF
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "resume_faangpath.tex"
+      - "resume.cls"
+      - ".github/workflows/build-resume.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  ROOT_TEX: resume_faangpath.tex
+  OUT_DIR: build
+
+jobs:
+  build:
+    name: Compile LaTeX
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+      # Pulls your two files (resume_faangpath.tex, resume.cls)
+        uses: actions/checkout@v4
+
+      - name: Compile PDF with latexmk (xelatex)
+        uses: xu-cheng/latex-action@v3
+        with:
+          root_file: ${{ env.ROOT_TEX }}
+          latexmk_use_xelatex: true
+          work_in_root_file_dir: true
+          continue_on_error: false
+          extra_system_packages: "fontconfig"
+
+      - name: Prepare output
+        run: |
+          mkdir -p "$OUT_DIR"
+          PDF="${ROOT_TEX%.tex}.pdf"
+          test -f "$PDF" || (echo "Expected $PDF not found" && exit 1)
+          cp "$PDF" "$OUT_DIR/resume.pdf"
+
+      - name: Upload PDF artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: resume-pdf
+          path: ${{ env.OUT_DIR }}/resume.pdf
+          if-no-files-found: error
+          retention-days: 30
+
+      # Minimal viewer page (optional, for GitHub Pages)
+      - name: Create index.html for Pages
+        run: |
+          cat > "$OUT_DIR/index.html" <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>Resume</title>
+          <style>
+            body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif;max-width:780px;margin:48px auto;padding:0 16px;line-height:1.6}
+            a{word-break:break-all}
+            iframe{border:1px solid #ddd;border-radius:10px}
+          </style>
+          <h1>Resume</h1>
+          <p><a href="resume.pdf">Download the PDF</a></p>
+          <iframe src="resume.pdf" width="100%" height="900"></iframe>
+          HTML
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.OUT_DIR }}
+
+  deploy:
+    name: Deploy to GitHub Pages
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4
