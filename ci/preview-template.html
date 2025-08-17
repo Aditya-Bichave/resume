@@ -70,6 +70,7 @@
       <h2>Details</h2>
       <div class="grid2 small">
         <div><strong>Years detected:</strong> <span id="years">—</span></div>
+        <div><strong>Years required:</strong> <span id="years_req">—</span></div>
         <div><strong>Required coverage:</strong> <span id="reqcov">—</span></div>
         <div><strong>Nice-to-have coverage:</strong> <span id="nthcov">—</span></div>
       </div>
@@ -91,13 +92,10 @@ async function load() {
     // Populate Component Scores
     const cs = j.component_scores || {};
     const componentsEl = document.getElementById('components');
-    componentsEl.innerHTML = ''; // Clear loading
+    componentsEl.innerHTML = '';
     const componentMap = {
       'keywords': 'Keywords',
-      'semantic_match': 'Semantic Match',
       'experience_fit': 'Experience Fit',
-      'quality': 'Quality',
-      'impact': 'Impact Metrics',
       'seniority_fit': 'Seniority Fit'
     };
     Object.entries(componentMap).forEach(([key, label]) => {
@@ -140,6 +138,7 @@ async function load() {
     const details = j.details || {};
     const pct = x => (Math.round((x || 0) * 1000) / 10) + '%';
     document.getElementById('years').textContent = (details.years_total_detected ?? '—') + 'y';
+    document.getElementById('years_req').textContent = (details.years_total_required ?? '—') + 'y';
     document.getElementById('reqcov').textContent = pct(details.required_coverage);
     document.getElementById('nthcov').textContent = pct(details.nice_to_have_coverage);
 
@@ -153,7 +152,7 @@ async function load() {
   } catch (e) {
     console.error("Failed to load or parse ATS report:", e);
     document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="panel" style="grid-column: span 2;"><div class="warn">ATS report not found or is invalid.</div><div class="small muted">We expected <code>ats-pro-report.json</code> in this folder. The ATS analysis step may have failed. Check the workflow run for errors.</div></div>'
+      '<div class="panel" style="grid-column: span 2;"><div class="warn">ATS report not found or is invalid.</div><div class="small muted">The ATS analysis step may have failed. Check the workflow run for errors.</div></div>'
     );
   }
 }
