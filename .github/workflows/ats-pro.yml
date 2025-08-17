@@ -36,27 +36,24 @@ jobs:
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
-      
-      # CORRECTED: This step now properly resolves the PDF filename using shell syntax
+
       - name: Resolve PDF filename
         id: names
         shell: bash
         run: |
-          BASE_NAME="${{ env.ROOT_TEX%.tex }}"
+          BASE_NAME="${ROOT_TEX%.tex}"
           echo "pdf_name=${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
-
-      - name: Cache pip & Spacy model
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            /usr/local/lib/python3.10/site-packages/spacy/
-          key: ${{ runner.os }}-atspro-v3-${{ hashFiles(env.ATS_REQS_FILE) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles(env.ATS_REQS_FILE) }}
 
       - name: Install ATS dependencies
         run: |
@@ -85,22 +82,23 @@ jobs:
 
       - name: Parse report for comment
         id: parser
-        if: steps.ats.outcome != 'skipped' && steps.ats.conclusion != 'failure'
+        if: steps.ats.outcome == 'success'
+        shell: bash
         run: |
           SCORE=$(jq -r .overall_score ${{ env.REPORT_JSON }})
           GATES_PASSED=$(jq -r 'if (.gates | all) then "✅ All Passed" else "❌ Some Failed" end' ${{ env.REPORT_JSON }})
           SUGGESTIONS=$(jq -r 'if (.suggestions | length > 0) then .suggestions | map("- \(. | gsub("\""; ""))") | join("\n") else "- ✅ Looks good!" end' ${{ env.REPORT_JSON }})
-          
+
           {
             echo 'comment_body<<EOF'
             echo "### ATS Pro Report (Strict Gate)"
             echo "| Score | Gates Status |"
             echo "|:-----:|:------------:|"
             echo "| **$SCORE / 100** | **$GATES_PASSED** |"
-            echo ""
+            echo
             echo "#### Actionable Suggestions"
             echo "$SUGGESTIONS"
-            echo ""
+            echo
             echo "_This is a strict check. See the **PR Preview** for a detailed visual breakdown._"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"

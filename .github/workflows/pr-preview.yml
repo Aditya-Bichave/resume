@@ -22,7 +22,7 @@ env:
   # --- Tool Configuration (Centralized in main branch) ---
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
-  
+
 concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -36,7 +36,7 @@ jobs:
         with:
           ref: main
           path: main
-      
+
       - name: Checkout PR branch (for resume source)
         uses: actions/checkout@v4
         with:
@@ -47,28 +47,24 @@ jobs:
         with:
           root_file: ${{ env.ROOT_TEX }}
           working_directory: pr
-      
-      # CORRECTED: This step now properly resolves the PDF filename using shell syntax
+
       - name: Resolve Filenames
         id: names
         shell: bash
         run: |
-          BASE_NAME="${{ env.ROOT_TEX%.tex }}"
+          BASE_NAME="${ROOT_TEX%.tex}"
           echo "pdf_path=pr/${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
-
-      # CORRECTED: The hashFiles path is now valid
-      - name: Cache pip & Spacy model
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/pip
-            /usr/local/lib/python3.10/site-packages/spacy/
-          key: ${{ runner.os }}-atspro-v3-${{ hashFiles(format('main/{0}', env.ATS_REQS_FILE)) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles(format('main/{0}', env.ATS_REQS_FILE)) }}
 
       - name: Install ATS dependencies
         run: |
@@ -92,7 +88,9 @@ jobs:
 
       - name: Copy files into preview folder
         id: prep
+        shell: bash
         run: |
+          set -euo pipefail
           PREVIEW_DIR="previews/pr-${{ github.event.pull_request.number }}"
           mkdir -p "site/${PREVIEW_DIR}"
           cp "${{ steps.names.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
@@ -126,6 +124,6 @@ jobs:
           body: |
             ### 📄 Live PR Preview (with ATS)
             **Preview URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/
-            
+
             _The page shows your compiled PDF and the ATS breakdown side-by-side._
           edit-mode: replace
