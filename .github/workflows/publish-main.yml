@@ -60,10 +60,27 @@ jobs:
 
       - name: Run ATS Analysis for publishing
         run: |
-          python ${{ env.ATS_SCRIPT_PATH }} \
-            --pdf "${{ steps.names.outputs.pdf_name }}" \
-            --jd "job-description.txt" \
-            --out-json "ats-pro-report.json"
+          set -euo pipefail
+          ATS="pr/${{ env.ATS_SCRIPT_PATH }}"
+          if [ ! -f "$ATS" ]; then
+            ATS="main/${{ env.ATS_SCRIPT_PATH }}"
+          fi
+          if [ ! -f "ATS_TAXONOMY_PATH" ]; then
+            ATS_TAXONOMY_PATH="main/${{ env.ATS_TAXONOMY_PATH }}"
+          fi
+          JD="jd/job-description.txt"
+          if [ ! -f "$JD" ]; then
+            JD="main/jd/job-description.txt"
+          fi
+          echo "Using ATS script: $ATS"
+          echo "Using JD file:    $JD"
+          python "$ATS" \
+            --pdf "${{ steps.names.outputs.pdf_path }}" \
+            --jd "$JD" \
+            --taxonomy "ATS_TAXONOMY_PATH"
+            --out-json "ats-pro-report.json" \
+            --out-md   "ats-pro-report.md" \
+            --out-html "ats-pro-report.html"
 
       - name: Prep assets for publishing
         id: meta
