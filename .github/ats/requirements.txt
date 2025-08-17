@@ -1,0 +1,19 @@
+# PDF & Text Processing
+pdfminer.six
+pdfplumber
+PyMuPDF
+Pillow
+pytesseract
+
+# NLP & Scoring
+spacy
+rapidfuzz
+textstat
+python-dateutil
+dateparser
+scikit-learn
+sentence-transformers
+numpy
+
+# Optional: For grammar check if you enable it
+language-tool-python

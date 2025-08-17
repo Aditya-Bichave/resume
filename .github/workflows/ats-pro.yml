@@ -5,11 +5,9 @@ on:
     types: [opened, synchronize, reopened]
     paths:
       - "resume*.tex"
-      - "resume*.pdf"
       - "resume*.cls"
-      - ".github/workflows/**"
-      # If you also want PRs to rebuild when JD changes *in the PR branch*, uncomment:
-      # - "job-description.txt"
+      - ".github/workflows/ats-pro.yml"
+      - "job-description.txt"
 
 permissions:
   contents: read
@@ -18,12 +16,8 @@ permissions:
 env:
   ROOT_TEX: resume_faangpath.tex
   REPORT_JSON: ats-pro-report.json
-  REPORT_MD: ats-pro-report.md
-
-  # Files that live inside the Pages branch checkout (we detect the branch name below)
-  ROLE_FILE: ci/ats-pro/roles/backend-java.json
-
-  # Strictness thresholds (the analyzer exits non-zero if these fail)
+  ATS_SCRIPT_PATH: .github/ats/ats_pro.py
+  ATS_REQS_FILE: .github/ats/requirements.txt
   MIN_SCORE: "78"
   MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
 
@@ -34,63 +28,26 @@ concurrency:
 jobs:
   ats-pro:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout PR branch (resume source)
+      - name: Checkout PR branch
         uses: actions/checkout@v4
-
-      # Always read job-description.txt from main
-      - name: Checkout main (job-description.txt)
-        uses: actions/checkout@v4
-        with:
-          ref: main
-          path: jd
-          sparse-checkout: |
-            job-description.txt
-          sparse-checkout-cone: true
 
       - name: Build resume PDF
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
-      - name: Resolve filenames
+      
+      - name: Resolve PDF filename
         id: names
-        shell: bash
-        run: |
-          ROOT="${{ env.ROOT_TEX }}"
-          BASE="${ROOT%.tex}"
-          echo "pdf=${BASE}.pdf" >> "$GITHUB_OUTPUT"
-          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+        run: echo "pdf=${{ env.ROOT_TEX%.tex }}.pdf" >> "$GITHUB_OUTPUT"
 
-      # Auto-detect which Pages branch exists: gh_pages or gh-pages
-      - name: Resolve Pages branch name
-        id: pages
-        shell: bash
-        run: |
-          set -e
-          if git ls-remote --exit-code --heads origin gh_pages >/dev/null 2>&1; then
-            echo "ref=gh_pages" >> "$GITHUB_OUTPUT"
-          elif git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            echo "ref=gh-pages" >> "$GITHUB_OUTPUT"
-          else
-            echo "No Pages branch found (expected 'gh_pages' or 'gh-pages')."
-            exit 1
-          fi
-
-      # Pull ATS code (script, requirements, roles) from the Pages branch
-      - name: Checkout Pages branch (ATS code)
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.pages.outputs.ref }}
-          path: ops
-
-      - name: Cache pip & HF models
+      - name: Cache pip & Spacy model
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
-            ~/.cache/huggingface
-          key: ${{ runner.os }}-atspro-${{ hashFiles('ops/ci/ats-pro/requirements.txt') }}
+            /usr/local/lib/python3.10/site-packages/spacy/
+          key: ${{ runner.os }}-atspro-v2-${{ hashFiles(env.ATS_REQS_FILE) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -100,35 +57,49 @@ jobs:
       - name: Install ATS dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r ops/ci/ats-pro/requirements.txt
-          python -c "import nltk; nltk.download('punkt', quiet=True)"
+          pip install -r ${{ env.ATS_REQS_FILE }}
+          python -m spacy download en_core_web_sm
 
-      # Run strict analyzer; allow this step to fail so we can still post the PR comment,
-      # then we fail the job at the end based on this step's outcome.
       - name: Run ATS Pro analysis (non-blocking)
         id: ats
-        shell: bash
         continue-on-error: true
         run: |
-          python ops/ci/ats-pro/ats_pro.py \
+          python ${{ env.ATS_SCRIPT_PATH }} \
             --pdf "${{ steps.names.outputs.pdf }}" \
-            --tex "${{ env.ROOT_TEX }}" \
-            --jd  "jd/job-description.txt" \
-            --role "ops/${{ env.ROLE_FILE }}" \
+            --jd "job-description.txt" \
             --out-json "${{ env.REPORT_JSON }}" \
-            --out-md   "${{ env.REPORT_MD }}" \
             --min-score "${{ env.MIN_SCORE }}" \
             --min-req-coverage "${{ env.MIN_REQUIRED_SKILLS_COVERAGE }}"
 
-
       - name: Upload report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ats-pro-report
-          path: |
-            ${{ env.REPORT_JSON }}
-            ${{ env.REPORT_MD }}
+          name: ats-pro-report-strict
+          path: ${{ env.REPORT_JSON }}
           retention-days: 7
+
+      - name: Parse report for comment
+        id: parser
+        if: steps.ats.outcome != 'skipped' && steps.ats.conclusion != 'failure'
+        run: |
+          SCORE=$(jq -r .overall_score ${{ env.REPORT_JSON }})
+          GATES_PASSED=$(jq -r 'if (.gates | all) then "✅ All Passed" else "❌ Some Failed" end' ${{ env.REPORT_JSON }})
+          SUGGESTIONS=$(jq -r 'if (.suggestions | length > 0) then .suggestions | map("- \(. | gsub("\""; ""))") | join("\n") else "- ✅ Looks good!" end' ${{ env.REPORT_JSON }})
+          
+          {
+            echo 'comment_body<<EOF'
+            echo "### ATS Pro Report (Strict Gate)"
+            echo "| Score | Gates Status |"
+            echo "|:-----:|:------------:|"
+            echo "| **$SCORE / 100** | **$GATES_PASSED** |"
+            echo ""
+            echo "#### Actionable Suggestions"
+            echo "$SUGGESTIONS"
+            echo ""
+            echo "_This is a strict check. See the **PR Preview** for a detailed visual breakdown._"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - name: Find prior ATS comment
         id: find-comment
@@ -136,19 +107,19 @@ jobs:
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: 'ATS Pro Report (Strict)'
+          body-includes: 'ATS Pro Report (Strict Gate)'
 
       - name: Create or update PR comment
+        if: steps.parser.outputs.comment_body
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
           issue-number: ${{ github.event.pull_request.number }}
-          body-path: ${{ env.REPORT_MD }}
+          body: ${{ steps.parser.outputs.comment_body }}
           edit-mode: replace
-        continue-on-error: true
 
       - name: Fail the job if analysis failed
         if: steps.ats.outcome == 'failure'
         run: |
-          echo "ATS Pro gate/score failed (see PR comment and artifact)."
+          echo "ATS Pro gate/score failed. See PR comment and artifact for details."
           exit 1

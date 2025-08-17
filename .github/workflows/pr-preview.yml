@@ -6,29 +6,23 @@ on:
     paths:
       - "resume*.tex"
       - "resume*.cls"
-      - ".github/workflows/**"
-      # If you also want rebuilds when JD changes in the PR branch, uncomment:
-      # - "job-description.txt"
+      - ".github/workflows/pr-preview.yml"
+      - "job-description.txt"
 
 permissions:
   contents: write
   pull-requests: write
 
 env:
-  # <<< CHANGE THIS if your LaTeX root file is different >>>
+  # --- User Configuration ---
   ROOT_TEX: resume_faangpath.tex
+  SITE_BRANCH: gh-pages
+  PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH: ci/preview-template.html
 
-  # Previews live under this folder on the Pages branch
-  PREVIEWS_DIR: previews
-
-  # Paths (inside the Pages branch) for ATS role + preview template
-  ATS_ROLE_FILE: ci/ats-pro/roles/backend-java.json
-  PREVIEW_TEMPLATE: ci/preview-template.html
-
-  # ATS strictness (this preview job won't fail on score; it's just for display)
-  ATS_MIN_SCORE: "78"
-  ATS_MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
-
+  # --- Tool Configuration (Centralized in main branch) ---
+  ATS_SCRIPT_PATH: .github/ats/ats_pro.py
+  ATS_REQS_FILE: .github/ats/requirements.txt
+  
 concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
   cancel-in-progress: true
@@ -37,65 +31,36 @@ jobs:
   pr-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch (resume source)
-        uses: actions/checkout@v4
-
-      # Pull JD from main so PRs always evaluate against canonical JD
-      - name: Checkout main (job-description.txt)
+      - name: Checkout PR branch (resume source + ATS tools)
         uses: actions/checkout@v4
         with:
+          # Checkout the main branch to get the latest job description
+          # This ensures PRs are always evaluated against the canonical JD
           ref: main
-          path: jd
-          sparse-checkout: |
-            job-description.txt
-          sparse-checkout-cone: true
+          path: main
+      
+      - name: Checkout PR code
+        uses: actions/checkout@v4
+        with:
+          path: pr
 
-      # Build the resume PDF (what ATS & reviewers will see)
       - name: Build resume PDF
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
+          working_directory: pr
       
-      - name: Resolve filenames
+      - name: Resolve PDF filename
         id: names
-        shell: bash
-        run: |
-          ROOT="${{ env.ROOT_TEX }}"
-          BASE="${ROOT%.tex}"
-          echo "pdf=${BASE}.pdf" >> "$GITHUB_OUTPUT"
-          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+        run: echo "pdf_path=pr/${{ env.ROOT_TEX%.tex }}.pdf" >> "$GITHUB_OUTPUT"
 
-
-      # Figure out which Pages branch exists: gh_pages or gh-pages
-      - name: Resolve Pages branch name
-        id: pages
-        shell: bash
-        run: |
-          set -e
-          if git ls-remote --exit-code --heads origin gh_pages >/dev/null 2>&1; then
-            echo "ref=gh_pages" >> "$GITHUB_OUTPUT"
-          elif git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
-            echo "ref=gh-pages" >> "$GITHUB_OUTPUT"
-          else
-            echo "No Pages branch found (expected 'gh_pages' or 'gh-pages')."
-            exit 1
-          fi
-
-      # Bring in ATS code and the preview HTML template from the Pages branch
-      - name: Checkout Pages branch (ATS code + template)
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ steps.pages.outputs.ref }}
-          path: ops
-
-      # Optional speed-up for embeddings/models
-      - name: Cache pip & HF models
+      - name: Cache pip & Spacy model
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
-            ~/.cache/huggingface
-          key: ${{ runner.os }}-atspro-${{ hashFiles('ops/ci/ats-pro/requirements.txt') }}
+            /usr/local/lib/python3.10/site-packages/spacy/
+          key: ${{ runner.os }}-atspro-v3-${{ hashFiles('main/'.concat(env.ATS_REQS_FILE)) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -105,59 +70,43 @@ jobs:
       - name: Install ATS dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r ops/ci/ats-pro/requirements.txt
-          python -c "import nltk; nltk.download('punkt', quiet=True)"
+          pip install -r "main/${{ env.ATS_REQS_FILE }}"
+          python -m spacy download en_core_web_sm
 
-      # Run strict ATS analyzer but don't fail this preview job;
-      # the “blocking” version (if desired) should live in a separate workflow.
       - name: Run ATS analysis (non-blocking)
-        shell: bash
         continue-on-error: true
         run: |
-          python ops/ci/ats-pro/ats_pro.py \
-            --pdf "${{ steps.names.outputs.pdf }}" \
-            --tex "${{ env.ROOT_TEX }}" \
-            --jd  "jd/job-description.txt" \
-            --role "ops/${{ env.ATS_ROLE_FILE }}" \
-            --out-json "ats-pro-report.json" \
-            --out-md   "ats-pro-report.md" \
-            --min-score "${{ env.ATS_MIN_SCORE }}" \
-            --min-req-coverage "${{ env.ATS_MIN_REQUIRED_SKILLS_COVERAGE }}"
+          python "main/${{ env.ATS_SCRIPT_PATH }}" \
+            --pdf "${{ steps.names.outputs.pdf_path }}" \
+            --jd "main/job-description.txt" \
+            --out-json "ats-pro-report.json"
 
-            --min-req-coverage "${{ env.ATS_MIN_REQUIRED_SKILLS_COVERAGE }}"
-
-      # Prepare/update the per-PR preview folder in the Pages branch
       - name: Checkout Pages branch to publish preview
         uses: actions/checkout@v4
         with:
-          ref: ${{ steps.pages.outputs.ref }}
+          ref: ${{ env.SITE_BRANCH }}
           path: site
 
       - name: Copy files into preview folder
         id: prep
-        shell: bash
         run: |
-          PR="${{ github.event.pull_request.number }}"
-          PREVIEW_DIR="${{ env.PREVIEWS_DIR }}/pr-${PR}"
+          PREVIEW_DIR="previews/pr-${{ github.event.pull_request.number }}"
           mkdir -p "site/${PREVIEW_DIR}"
-
-          # Copy compiled resume + ATS report + HTML template
-          cp "${{ steps.names.outputs.pdf }}" "site/${PREVIEW_DIR}/resume.pdf"
+          cp "${{ steps.names.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
           cp "ats-pro-report.json" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
-          cp "ops/${{ env.PREVIEW_TEMPLATE }}" "site/${PREVIEW_DIR}/index.html"
-
-          echo "preview_dir=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
+          cp "site/${{ env.PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH }}" "site/${PREVIEW_DIR}/index.html"
+          date -u -Iseconds > "site/${PREVIEW_DIR}/.built_at"
+          echo "preview_url_path=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
 
       - name: Commit & push preview
         working-directory: site
         run: |
-          git config user.name  "github-actions[bot]"
+          git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "PR preview: #${{ github.event.pull_request.number }} @ $GITHUB_SHA" || echo "No changes to commit"
-          git push origin ${{ steps.pages.outputs.ref }}
+          git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+          git push origin ${{ env.SITE_BRANCH }}
 
-      # Idempotent PR comment with the preview URL
       - name: Find prior preview comment
         id: find-comment
         uses: peter-evans/find-comment@v3
@@ -173,6 +122,7 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: |
             ### 📄 Live PR Preview (with ATS)
-            - **URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_dir }}/
-            - The page shows your compiled **PDF** and the **ATS score**/breakdown side-by-side.
+            **Preview URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/
+            
+            _The page shows your compiled PDF and the ATS breakdown side-by-side._
           edit-mode: replace
