@@ -1,98 +1,90 @@
 <!doctype html>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Aditya Bichave — Software Engineer</title>
-<meta name="description" content="Software Engineer (4+ yrs). Backend, Java/Spring, distributed systems. Resume versions and projects.">
-<style>
-  :root { --bg:#0b0e14; --fg:#eaeef5; --muted:#9aa4b2; --card:#111522; --accent:#72a9ff; --pill:#1a2132; --ok: #22c55e; }
-  @media (prefers-color-scheme: light) { :root{ --bg:#f7f9fc; --fg:#0b1220; --muted:#5b6572; --card:#ffffff; --accent:#1b63e7; --pill:#eef3ff; } }
-  html,body{margin:0;padding:0;background:var(--bg);color:var(--fg);font:16px/1.6 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Arial,sans-serif}
-  .wrap{max-width:1000px;margin:48px auto;padding:0 20px}
-  .hero{display:grid;grid-template-columns:1fr auto;gap:24px;align-items:center}
-  .title{font-size:clamp(28px,4vw,40px);margin:0}
-  .subtitle{color:var(--muted);margin-top:4px}
-  .btn{display:inline-block;padding:.7rem 1rem;border-radius:12px;background:var(--accent);color:white;text-decoration:none;font-weight:600}
-  .ghost{background:transparent;color:var(--accent);border:1px solid var(--accent)}
-  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:28px}
-  .card{background:var(--card);border:1px solid #1e2434;border-radius:16px;padding:18px}
-  .muted{color:var(--muted)}
-  .pill{display:inline-block;background:var(--pill);color:var(--accent);padding:.25rem .6rem;border-radius:999px;font-size:.85rem;margin-right:.35rem}
-  iframe{width:100%;height:950px;border:1px solid #1e2434;border-radius:16px;background:white}
-  footer{margin:40px 0;color:var(--muted);font-size:.95rem}
-  ul.versions{list-style:none;padding:0;margin:0}
-  ul.versions li{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px dashed #253047}
-  ul.versions li:last-child{border:none}
-  a{color:var(--accent)}
-  .score-badge { font-weight: bold; color: var(--ok); font-size: 0.9rem; }
-</style>
-
-<div class="wrap">
-  <section class="hero">
-    <div>
-      <h1 class="title">Aditya Bichave</h1>
-      <div class="subtitle">Software Engineer • 4+ yrs • Java/Spring • Microservices • APIs • SQL/NoSQL</div>
-      <div style="margin-top:16px">
-        <a class="btn" href="latest/resume.pdf">Download Latest Resume</a>
-        <a class="btn ghost" href="#versions">See All Versions</a>
-      </div>
-      <div style="margin-top:12px">
-        <span class="pill">Java</span><span class="pill">Spring Boot</span><span class="pill">Distributed Systems</span>
-        <span class="pill">Docker</span><span class="pill">PostgreSQL</span>
-      </div>
-    </div>
-    <div class="card">
-      <div class="muted">Latest build</div>
-      <div id="sha" style="font-family:ui-monospace,Menlo,Consolas,monospace;margin:6px 0">Loading…</div>
-      <div><a href="latest/resume.pdf">Open latest PDF</a></div>
-    </div>
-  </section>
-
-  <section style="margin-top:28px">
-    <iframe src="latest/resume.pdf#toolbar=0" loading="lazy" title="Resume preview"></iframe>
-  </section>
-
-  <section id="versions" style="margin-top:32px">
-    <h2>All Versions</h2>
-    <div class="card">
-      <ul class="versions" id="list"><li class="muted">Loading…</li></ul>
-    </div>
-  </section>
-
-  <footer>
-    PR previews live under <code>/previews/pr-&lt;number&gt;/</code> and are auto-deleted after ~5 days.
-  </footer>
-</div>
-
-<script>
-// Static site JS to render versions based on gh.json
-(async () => {
-  try {
-    const meta = await (await fetch('gh.json', { cache: 'no-store' })).json();
-    document.getElementById('sha').textContent = meta.latest || '—';
-    const list = document.getElementById('list');
-    list.innerHTML = '';
-    
-    (meta.versions || []).forEach(v => {
-      const li = document.createElement('li');
-      // Show a score badge if the score is available and not null
-      const scoreBadge = (v.score !== null && v.score !== undefined) 
-        ? `<span class="score-badge">ATS: ${v.score}</span>` 
-        : '';
-      
-      li.innerHTML = `
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Resume Releases</title>
+  <style>
+    :root{--bg:#0b0d10;--card:#11151b;--fg:#e7edf3;--muted:#9aa4b2;--accent:#4c8bf5;--ok:#19c37d}
+    *{box-sizing:border-box} html,body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    header{padding:18px;border-bottom:1px solid #1c212b;background:linear-gradient(180deg,#0b0d10,#0c1117)}
+    h1{margin:0;font-size:18px}
+    main{max-width:960px;margin:0 auto;padding:18px;display:grid;gap:14px}
+    .card{background:var(--card);border:1px solid #1c212b;border-radius:12px;padding:14px}
+    .muted{color:var(--muted)}
+    a{color:var(--accent);text-decoration:none}
+    .row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #253044;border-radius:999px;padding:4px 10px;color:#b9cff5}
+    .score{font-weight:700}
+    ul{list-style:none;margin:0;padding:0}
+    li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px dashed #1f2633}
+    li:last-child{border-bottom:0}
+    .links{display:flex;align-items:center;gap:16px}
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Resume Releases <span class="muted">· versions & live latest</span></h1>
+  </header>
+  <main>
+    <section class="card">
+      <div class="row">
         <div>
-          <code>${v.tag}</code>
+          <div class="muted">Latest</div>
+          <div id="latestSha">—</div>
         </div>
-        <div style="display:flex; align-items:center; gap: 16px;">
-          ${scoreBadge}
-          <a href="versions/${v.tag}/resume.pdf">View PDF</a>
+        <div class="links">
+          <a id="latestPdf" href="latest/resume.pdf">Open Latest PDF</a>
+          <a id="latestReport" href="latest/ats-pro-report.html">Report</a>
         </div>
-      `;
-      list.appendChild(li);
-    });
-  } catch (e) {
-    document.getElementById('sha').textContent = 'n/a';
-    document.getElementById('list').innerHTML = '<li class="muted">Could not load version history.</li>';
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="row" style="margin-bottom:8px;">
+        <div><strong>Versions</strong></div>
+        <div class="muted">Newest first</div>
+      </div>
+      <ul id="versions"></ul>
+    </section>
+  </main>
+
+  <script>
+  async function load() {
+    try {
+      const r = await fetch('gh.json', { cache: 'no-cache' });
+      if (!r.ok) throw new Error('gh.json not found');
+      const data = await r.json();
+      document.getElementById('latestSha').textContent = data.latest || '—';
+
+      // Latest links are static paths (point to /latest/)
+      document.getElementById('latestPdf').href = 'latest/resume.pdf';
+      document.getElementById('latestReport').href = 'latest/ats-pro-report.html';
+
+      const list = document.getElementById('versions');
+      list.innerHTML = '';
+      const versions = (data.versions || []).slice().sort((a,b)=> (a.tag < b.tag ? 1 : -1));
+      for (const v of versions) {
+        const score = (v.score == null || v.score === 'null') ? '—' : v.score;
+        const li = document.createElement('li');
+        li.innerHTML = `
+          <div><code>${v.tag}</code></div>
+          <div class="links">
+            <span class="badge">Score <span class="score">${score}</span></span>
+            <a href="versions/${v.tag}/resume.pdf">PDF</a>
+            <a href="versions/${v.tag}/ats-pro-report.html">Report</a>
+          </div>
+        `;
+        list.appendChild(li);
+      }
+    } catch (e) {
+      console.error(e);
+      document.querySelector('main').insertAdjacentHTML('beforeend',
+        '<div class="card"><div class="muted">No release metadata found.</div><div>Publish the main branch to generate <code>gh.json</code>.</div></div>'
+      );
+    }
   }
-})();
-</script>
+  load();
+  </script>
+</body>
+</html>
