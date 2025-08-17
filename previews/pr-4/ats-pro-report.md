@@ -1,18 +1,34 @@
-### 🧠 ATS Pro Plus Report
-**Overall:** **31/100**
+# ATS Pro Plus
 
-**Gates**
-- ✅ Required Skills Coverage Ok
-- ✅ Per Skill Years Ok
-- ✅ Total Years Ok
-- ✅ Location Ok
-- ✅ Work Auth Ok
-- ✅ Degree Ok
+**Overall Score:** **70.7 / 100**
+
+## Component Scores
+
+| Keywords | Semantic | Sections | Experience | Impact | Quality | Seniority | Format –% |
+
+|---:|---:|---:|---:|---:|---:|---:|---:|
+
+| 70.0 | 0.0 | 100.0 | 100.0 | 89.4 | 71.8 | 100.0 | -0.0% |
+
+
+## Gates
+
+- ❌ Min Score Ok
+- ✅ Req Keywords Ok
+- ✅ Years Ok
 - ✅ Seniority Ok
+- ✅ Anti Gaming Ok
 
-**Breakdown**
-- Keywords: 18 | Semantic: -9 | Sections: 7 | Experience: 6 | Impact: 0 | Quality: 4 | Seniority: 6 | Formatting penalty: -2.0%
+## Keywords Coverage
 
-**Suggestions**
-- Increase impact bullets with metrics (%, $, time): aim for >50% of bullets to include numbers.
-- Improve readability: shorter sentences, active voice, concrete verbs.
+- Required: 0/0 (100%)
+- Nice-to-have: 0/0 (0%)
+
+## Per-skill Years (Required vs Estimated)
+
+_No per-skill years in JD._
+
+
+## Suggestions
+
+- Fix failing checks: min score ok.

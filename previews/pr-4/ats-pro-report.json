@@ -1,116 +1,63 @@
 {
-  "version": "2.0.1",
-  "role_name": "unspecified",
-  "overall_score": 31,
+  "overall_score": 70.7,
   "component_scores": {
-    "keywords": 18,
-    "semantic": -9,
-    "sections": 7,
-    "experience": 6,
-    "impact": 0,
-    "quality": 4,
-    "seniority": 6,
-    "formatting_penalty_pct": 2.0
+    "keywords": 70.0,
+    "semantic": 0.0,
+    "sections": 100.0,
+    "experience": 100.0,
+    "impact": 89.4,
+    "quality": 71.8,
+    "seniority": 100.0,
+    "formatting_penalty_pct": 0.0
   },
+  "formatting_penalty_pct": 0,
   "gates": {
-    "required_skills_coverage_ok": true,
-    "per_skill_years_ok": true,
-    "total_years_ok": true,
-    "location_ok": true,
-    "work_auth_ok": true,
-    "degree_ok": true,
-    "seniority_ok": true
+    "min_score_ok": false,
+    "req_keywords_ok": true,
+    "years_ok": true,
+    "seniority_ok": true,
+    "anti_gaming_ok": true
   },
-  "years_total_detected": 0.0,
-  "required_coverage": 1.0,
-  "nice_to_have_coverage": 0.0,
-  "phrase_coverage": 0.0,
-  "missing_required_skills": [],
+  "role_name": null,
+  "required_skills": [],
+  "nice_to_have_skills": [],
   "per_skill_years_required": {},
   "per_skill_years_estimated": {},
-  "lacking_years": {},
-  "sections_present": {
-    "summary": true,
-    "experience": true,
-    "projects": true,
-    "skills": true,
-    "education": true,
-    "certifications": false,
-    "achievements": true,
-    "links": false
-  },
-  "format_flags": {
-    "multi_column_pdf": true,
-    "icons_colors": false,
-    "footnotes": false
-  },
-  "quality": {
-    "readability": {
-      "flesch_reading_ease": 5.854407237936812,
-      "smog_index": 18.922397154172714,
-      "coleman_liau_index": 20.00465890183028,
-      "avg_sentence_len": 23.846153846153847
+  "years_total_detected": 4.0,
+  "keywords_summary": {
+    "required": {
+      "needed": 0,
+      "present": 0,
+      "coverage": 1.0
     },
-    "grammar_issues": 0
+    "nice": {
+      "needed": 0,
+      "present": 0,
+      "coverage": 0.0
+    }
   },
-  "anti_gaming": {
-    "top_token_ratio": 0.0357,
-    "bigram_unique_ratio": 0.9605,
-    "token_entropy": 8.0509,
-    "white_text_ratio": 0.0,
-    "tiny_font_ratio": 0.0
-  },
-  "semantic": {
-    "bi_encoder_score": 0.20194268226623535,
-    "cross_encoder_score": -1.0666100978851318,
-    "top_chunks": [
-      [
-        "Led this project and received a performance champion award.",
-        0.20194268226623535
-      ],
-      [
-        "Eyantra Homecoming Project Hackathon.",
-        0.1968444585800171
-      ],
-      [
-        "\u2022 Customers: Supported customer-facing and cross-functional teams in deploying, designing and implementing POC to enhance the product experience.",
-        0.19481319189071655
-      ],
-      [
-        "Software Development Engineer Test, Pubmatic Jun 2021 - Oct 2021 Pune, Maharashtra \u2022 Automated Ad revenue monetization testing pipeline, Enhanced debugging skills through troubleshooting \u2022 Adapted quickly to new technologies and methodologies in the fast-paced AdTech sector PROJECTS Grid Compression Using autoencoders.",
-        0.16987623274326324
-      ],
-      [
-        "Eyantra Finalist, IIT bombay.",
-        0.1695934385061264
-      ],
-      [
-        "A solutions to help the government body to rectify and find issues.",
-        0.15479743480682373
-      ],
-      [
-        "Effective communicator, able to work independently or collaboratively with stakeholders.",
-        0.14093026518821716
-      ],
-      [
-        "Software Engineer 2, Sandvine Oct 2021 - June 2024 Bangalore, Karnataka \u2022 IBCM: Developed an innovative in-house distributed systems Intent-Based Congestion Management (IBCM), optimizing performance and enhancing Quality of Experience (QoE) which helped reduce network congestion by 15%.",
-        0.13462470471858978
-      ],
-      [
-        "ADITYA BICHAVE (+91) 7798497481 \u22c4Bangalore, India aditya.bichave@gmail.com https://www.linkedin.com/in/aditya-bichave/ BRIEF SUMMARY I am a skilled Software Engineer with 4+ years experience in building large-scale, scalable, distributed systems.",
-        0.12899592518806458
-      ],
-      [
-        "\u2022 Authored migration patterns and templates to accelerate adoption across Java microservices.",
-        0.1195058599114418
-      ]
-    ]
-  },
+  "keywords_details": [],
+  "keywords_missing_ranked": [],
+  "keywords_present_ranked": [],
   "suggestions": [
-    "Increase impact bullets with metrics (%, $, time): aim for >50% of bullets to include numbers.",
-    "Improve readability: shorter sentences, active voice, concrete verbs."
+    "Fix failing checks: min score ok."
   ],
-  "timings_s": {
-    "scoring": 8.854
+  "diagnostics": {
+    "overall_score": 70.7,
+    "digits_ratio": 0.1113,
+    "readability_norm": 0.718,
+    "lacking_years": {},
+    "top_snippets": [
+      "Seeking opportunities to leverage experience for positive organizational\nimpact\nEDUCATION\nBachelor of Computer Science, Pune University\n2017 - 2021\nCourse: Computer Science\nCGPA: 9.1/10\nRelevant Courses: Algorithms, Data Structures, Object-Oriented software development process, Java, Python, Operating Sys-\ntems, Database Management Systems, Distributed Systems, Network Security, Big data\nSKILLS\nPlatforms\nDocker, Google Cloud Platform, Amazon Web Services\nData\nAmazon RDS, NoSQL Databases,\nPostgreSQL, MySQL, Redis,\nMongoDB,\nAerospike, Amazon DynamoDB\nComputer Languages\nPython, SQL, Java 8, Java\nFrameworks\nSpring Data, Hibernate, Spring Core, JUnit, Spring Security, PyTorch, Mockito,\nDjango, Spring Boot, JUnit 5, Spring MVC\nWeb/Application Servers\nWeb Services\nSolutions\nPostman, Amazon S3, AWS CloudFormation, Amazon Elastic File System, Amazon\nEC2\nStandards\nAPI & Integration Standards, REST API\nEXPERIENCE\nSDE II, EPAM\nJul 2024 – Present\nSenior Software Engineer, Uber\ntill Jul 2025\nBangalore, Karnataka\n• Executed end-to-end migration of critical microservices from legacy TChannel transport to the scalable YARPC framework.",
+      "ADITYA BICHAVE\n(+91) 7798497481",
+      "Software Engineer 2, Sandvine\nOct 2021 - June 2024\nBangalore, Karnataka\n• IBCM: Developed an innovative in-house distributed systems Intent-Based Congestion Management (IBCM), optimizing\nperformance and enhancing Quality of Experience (QoE) which helped reduce network congestion by 15%.",
+      "Software Development Engineer Test, Pubmatic\nJun 2021 - Oct 2021\nPune, Maharashtra\n• Automated Ad revenue monetization testing pipeline, Enhanced debugging skills through troubleshooting\n• Adapted quickly to new technologies and methodologies in the fast-paced AdTech sector\nPROJECTS\nGrid Compression Using autoencoders.",
+      "• OCE: Designed high-level and low-level architecture for Real-time Link Bandwidth Estimation, increasing revenue by\n$250K quarterly per license."
+    ],
+    "anti_gaming": {
+      "white_text_ratio": 0.0,
+      "tiny_font_ratio": 0.0
+    },
+    "seniority_ok": true
   }
 }

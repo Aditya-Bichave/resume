@@ -1,71 +1,99 @@
-
-<!DOCTYPE html>
-<html><head><meta charset='utf-8'><title>ATS Pro Plus Report</title>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>ATS Pro Plus Report</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <style>
-body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;max-width:980px;margin:24px auto;padding:0 16px;color:#111}
-h1{font-size:28px;margin:8px 0}
-h2{font-size:20px;margin:16px 0 8px}
-.card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,0.03)}
-.badge{display:inline-block;padding:2px 8px;border-radius:999px;background:#f1f5f9;margin-right:6px;font-size:12px}
-.ok{background:#dcfce7}
-.warn{background:#fee2e2}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{border-bottom:1px solid #eee;padding:8px;text-align:left}
-.bar{height:10px;background:#e5e7eb;border-radius:6px;overflow:hidden}
-.bar>span{display:block;height:10px;background:#3b82f6}
-.small{font-size:12px;color:#555}
-.code{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px}
-mark{background:#fef08a}
+:root{--bg:#0b0d10;--card:#11151b;--fg:#e7edf3;--muted:#9aa4b2;--accent:#4c8bf5;--ok:#19c37d;--bad:#ff5a5f;--bar:#1f2630;}
+*{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+a{color:var(--accent);text-decoration:none} header{padding:18px;border-bottom:1px solid #1c212b;background:linear-gradient(180deg,#0b0d10,#0c1117)}
+h1{margin:0;font-size:18px} main{max-width:1000px;margin:0 auto;padding:18px;display:grid;gap:14px}
+.card{background:var(--card);border:1px solid #1c212b;border-radius:12px;padding:14px} .muted{color:var(--muted)}
+.table{width:100%;border-collapse:collapse} .table th,.table td{border-bottom:1px dashed #1f2633;padding:8px;text-align:left}
+.badge{display:inline-flex;align-items:center;gap:6px;border:1px solid #253044;border-radius:999px;padding:4px 10px;color:#b9cff5}
+.row{display:flex;align-items:center;justify-content:space-between;gap:12px} .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+ul{margin:8px 0 0 18px} .bar{height:8px;background:var(--bar);border-radius:999px;overflow:hidden;display:inline-block;min-width:140px;margin-right:8px}
+.bar>span{display:block;height:100%;background:linear-gradient(90deg,#3d7bfd,#00c6ff)} li.ok{color:var(--ok)} li.bad{color:var(--bad)}
 </style>
 </head>
 <body>
-  <h1>ATS Pro Plus — Report</h1>
-  <div class='small'>Version 2.0.1 • Overall: <b>31/100</b></div>
+  <header>
+    <h1>ATS Pro Plus <span class="muted">· Report</span></h1>
+  </header>
+  <main>
+    <section class="card">
+      <div class="row">
+        <div>
+          <div class="muted">Overall Score</div>
+          <div style="font-size:28px;font-weight:700">70.7</div>
+        </div>
+        <div class="badge">Formatting Penalty −0.0%</div>
+      </div>
+    </section>
 
-  <div class='card'>
-    <h2>Gates</h2>
-    <div><span class='badge ok'>required skills coverage ok</span><span class='badge ok'>per skill years ok</span><span class='badge ok'>total years ok</span><span class='badge ok'>location ok</span><span class='badge ok'>work auth ok</span><span class='badge ok'>degree ok</span><span class='badge ok'>seniority ok</span></div>
-  </div>
+    <section class="card">
+      <h2>Component Scores</h2>
+      <table class="table">
+        <tr><th>Component</th><th>Score</th></tr>
+        <tr><td>Keywords</td><td><div class='bar'><span style='width:70%;'></span></div> 70%</td></tr>
+        <tr><td>Semantic</td><td><div class='bar'><span style='width:0%;'></span></div> 0%</td></tr>
+        <tr><td>Sections</td><td><div class='bar'><span style='width:100%;'></span></div> 100%</td></tr>
+        <tr><td>Experience</td><td><div class='bar'><span style='width:100%;'></span></div> 100%</td></tr>
+        <tr><td>Impact</td><td><div class='bar'><span style='width:89%;'></span></div> 89%</td></tr>
+        <tr><td>Quality</td><td><div class='bar'><span style='width:71%;'></span></div> 71%</td></tr>
+        <tr><td>Seniority</td><td><div class='bar'><span style='width:100%;'></span></div> 100%</td></tr>
+      </table>
+    </section>
 
-  <div class='card'>
-    <h2>Component Scores</h2>
-    <table class='table'>
-      <tr><th>Keywords</th><th>Semantic</th><th>Sections</th><th>Experience</th><th>Impact</th><th>Quality</th><th>Seniority</th><th>Formatting Penalty</th></tr>
-      <tr>
-        <td>18</td><td>-9</td><td>7</td>
-        <td>6</td><td>0</td><td>4</td>
-        <td>6</td><td>-2.0%</td>
-      </tr>
-    </table>
-  </div>
+    <section class="card">
+      <h2>Gates</h2>
+      <ul>
+        <li class='bad'>✖ Min Score Ok</li><li class='ok'>✔ Req Keywords Ok</li><li class='ok'>✔ Years Ok</li><li class='ok'>✔ Seniority Ok</li><li class='ok'>✔ Anti Gaming Ok</li>
+      </ul>
+    </section>
 
-  <div class='card'>
-    <h2>Per-skill Years Coverage</h2>
-    <table class='table'>
-      <tr><th>Skill</th><th>Estimated</th><th>Required</th><th>Coverage</th></tr>
-      
-    </table>
-  </div>
+    <section class="card">
+      <h2>Keywords Coverage</h2>
+      <table class="table">
+        <tr><th></th><th>Present</th><th>Needed</th><th>Coverage</th></tr>
+        <tr>
+          <td>Required</td>
+          <td>0</td>
+          <td>0</td>
+          <td><div class='bar'><span style='width:100%;'></span></div> 100%</td>
+        </tr>
+        <tr>
+          <td>Nice-to-have</td>
+          <td>0</td>
+          <td>0</td>
+          <td><div class='bar'><span style='width:0%;'></span></div> 0%</td>
+        </tr>
+      </table>
+      <div class="two">
+        <div>
+          <h3>Top Missing</h3>
+          <div>—</div>
+        </div>
+        <div>
+          <h3>Top Present</h3>
+          <div>—</div>
+        </div>
+      </div>
+    </section>
 
-  <div class='card'>
-    <h2>Top Matching Snippets</h2>
-    <div class='card'><div class='small'>bi-score: 0.202</div><div>Led this project and received a performance champion award.</div></div><div class='card'><div class='small'>bi-score: 0.197</div><div>Eyantra Homecoming Project Hackathon.</div></div><div class='card'><div class='small'>bi-score: 0.195</div><div>• Customers: Supported customer-facing and cross-functional teams in deploying, designing and implementing POC to enhance the product experience.</div></div><div class='card'><div class='small'>bi-score: 0.170</div><div>Software Development Engineer Test, Pubmatic Jun 2021 - Oct 2021 Pune, Maharashtra • Automated Ad revenue monetization testing pipeline, Enhanced debugging skills through troubleshooting • Adapted quickly to new technologies and methodologies in the fast-paced AdTech sector PROJECTS Grid Compression Using autoencoders.</div></div><div class='card'><div class='small'>bi-score: 0.170</div><div>Eyantra Finalist, IIT bombay.</div></div><div class='card'><div class='small'>bi-score: 0.155</div><div>A solutions to help the government body to rectify and find issues.</div></div><div class='card'><div class='small'>bi-score: 0.141</div><div>Effective communicator, able to work independently or collaboratively with stakeholders.</div></div><div class='card'><div class='small'>bi-score: 0.135</div><div>Software Engineer 2, Sandvine Oct 2021 - June 2024 Bangalore, Karnataka • IBCM: Developed an innovative in-house distributed systems Intent-Based Congestion Management (IBCM), optimizing performance and enhancing Quality of Experience (QoE) which helped reduce network congestion by 15%.</div></div><div class='card'><div class='small'>bi-score: 0.129</div><div>ADITYA BICHAVE (+91) 7798497481 ⋄Bangalore, India aditya.bichave@gmail.com https://www.linkedin.com/in/aditya-bichave/ BRIEF SUMMARY I am a skilled Software Engineer with 4+ years experience in building large-scale, scalable, distributed systems.</div></div><div class='card'><div class='small'>bi-score: 0.120</div><div>• Authored migration patterns and templates to accelerate adoption across Java microservices.</div></div>
-  </div>
+    <section class="card">
+      <h2>Per-skill Years (Required vs Estimated)</h2>
+      <table class="table">
+        <tr><th>Skill</th><th>Required</th><th>Estimated</th><th>Coverage</th></tr>
+        <tr><td colspan='4'>No per-skill year requirements provided in JD.</td></tr>
+      </table>
+    </section>
 
-  <div class='card'>
-    <h2>JD (highlighted)</h2>
-    <div class='code'></div>
-  </div>
-
-  <div class='card'>
-    <h2>Resume (highlighted)</h2>
-    <div class='code'>ADITYA BICHAVE (+91) 7798497481 ⋄Bangalore, India aditya.bichave@gmail.com https://www.linkedin.com/in/aditya-bichave/ BRIEF SUMMARY I am a skilled Software Engineer with 4+ years experience in building large-scale, scalable, distributed systems. Proficient in Python, Java, Golang, Big-Data, Django, Spring Boot, SQL, Docker, AWS. Effective communicator, able to work independently or collaboratively with stakeholders. Seeking opportunities to leverage experience for positive organizational impact EDUCATION Bachelor of Computer Science, Pune University 2017 - 2021 Course: Computer Science CGPA: 9.1/10 Relevant Courses: Algorithms, Data Structures, Object-Oriented software development process, Java, Python, Operating Sys- tems, Database Management Systems, Distributed Systems, Network Security, Big data SKILLS Platforms Docker, Google Cloud Platform, Amazon Web Services Data Amazon RDS, NoSQL Databases, PostgreSQL, MySQL, Redis, MongoDB, Aerospike, Amazon DynamoDB Computer Languages Python, SQL, Java 8, Java Frameworks Spring Data, Hibernate, Spring Core, JUnit, Spring Security, PyTorch, Mockito, Django, Spring Boot, JUnit 5, Spring MVC Web/Application Servers Web Services Solutions Postman, Amazon S3, AWS CloudFormation, Amazon Elastic File System, Amazon EC2 Standards API & Integration Standards, REST API EXPERIENCE SDE II, EPAM Jul 2024 – Present Senior Software Engineer, Uber till Jul 2025 Bangalore, Karnataka • Executed end-to-end migration of critical microservices from legacy TChannel transport to the scalable YARPC framework. • Refactored service interfaces in Java 8+, enabling YARPC HTTP/gRPC transports with Thrift/Protobuf encoding while preserving API contracts. • Integrated YARPC services with Spring Boot to separate transport and business logic through modular layers. • Authored migration patterns and templates to accelerate adoption across Java microservices. Software Engineer 2, Sandvine Oct 2021 - June 2024 Bangalore, Karnataka • IBCM: Developed an innovative in-house distributed systems Intent-Based Congestion Management (IBCM), optimizing performance and enhancing Quality of Experience (QoE) which helped reduce network congestion by 15%. • Perf: Optimized existing codebase for 60% performance scalability, leveraging strong analytical skills. • OCE: Designed high-level and low-level architecture for Real-time Link Bandwidth Estimation, increasing revenue by $250K quarterly per license. Led this project and received a performance champion award. • Database: Took ownership of database optimization, Designing and implementing Database Async Writer feature for 30% performance improvement in IBCM and OCE. used SQL (vertica) for storage and Redis for Caching for faster data access. Used Big Data concepts for more optimized Data Storage, Data ingestion and Data Processing. • Load Balancing: Developed a distributed system for load balancing to scale and increase the product’s processing capability by 25%. Designed and Implemented support for Cloud Deployment with multi-cluster multi-node High availability setup • Infra: Led codebase migration for major system, achieving 4X performance improvement. Spearheaded this initiative by Mentoring and guiding achieving efficient memory usage and scaled performance • Features: Led development of key features including Real-time Operational capacity estimation, Async Database Writer Service, High Availability, Geo Redundancy, Multi-Cluster Support, and Licensing by Subscriber Count, among others by Leveraging Rest API, Aerospike, and Microservice concepts. • Customers: Supported customer-facing and cross-functional teams in deploying, designing and implementing POC to enhance the product experience. Software Development Engineer Test, Pubmatic Jun 2021 - Oct 2021 Pune, Maharashtra • Automated Ad revenue monetization testing pipeline, Enhanced debugging skills through troubleshooting • Adapted quickly to new technologies and methodologies in the fast-paced AdTech sector PROJECTS Grid Compression Using autoencoders. A solutions to store the mechanical projects of 5-6 TB by compressing Space Detection In Floor Plan DL. A solutions to help the government body to rectify and find issues. Eyantra Homecoming Project Hackathon. DL computer vision project which led to qualification for the competition organized by IIT-Bombay. ACHIEVEMENTS Published Patent App for providing corona vaccine in efficient way Won Hackathon Won annual hackathon in Sandvine for automating Setting up the MAE environment based on configuration. Eyantra Finalist, IIT bombay. Awarded for qualifying for finals for deep learning competition organized by IIT Bombay.</div>
-  </div>
-
-  <div class='card'>
-    <h2>Suggestions</h2>
-    <ul>
-      <li>Increase impact bullets with metrics (%, $, time): aim for >50% of bullets to include numbers.</li><li>Improve readability: shorter sentences, active voice, concrete verbs.</li>
-    </ul>
-  </div>
-</body></html>
+    <section class="card">
+      <h2>Suggestions</h2>
+      <ul><li>Fix failing checks: min score ok.</li></ul>
+    </section>
+  </main>
+</body>
+</html>
