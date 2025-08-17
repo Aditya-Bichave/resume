@@ -1,0 +1,64 @@
+{
+  "role_name": "Backend Engineer (Java)",
+  "overall_score": 51,
+  "component_scores": {
+    "keywords": 20,
+    "semantic": 8,
+    "sections": 8,
+    "experience": 12,
+    "impact": 0,
+    "hygiene": 4,
+    "formatting_penalty_pct": 2.0
+  },
+  "gates": {
+    "required_skills_coverage_ok": false,
+    "total_years_ok": true,
+    "location_ok": true,
+    "work_auth_ok": true,
+    "degree_ok": true
+  },
+  "years_total_detected": 4.08,
+  "required_coverage": 0.714,
+  "nice_to_have_coverage": 0.4,
+  "phrase_coverage": 0.167,
+  "missing_required_skills": [
+    "spring boot",
+    "kubernetes"
+  ],
+  "per_skill_years_required": {
+    "java": 2.0,
+    "spring boot": 1.0
+  },
+  "per_skill_years_estimated": {
+    "java": 2.448,
+    "spring boot": 0.0
+  },
+  "lacking_years": {
+    "spring boot": 1.0
+  },
+  "sections_present": {
+    "summary": true,
+    "experience": true,
+    "projects": true,
+    "skills": true,
+    "education": true,
+    "certifications": false,
+    "achievements": true,
+    "links": false
+  },
+  "format_flags": {
+    "multi_column_pdf": true,
+    "tables_or_tabular": false,
+    "multicol_env": false,
+    "images": false,
+    "headers_footers": false,
+    "icons_colors": false,
+    "footnotes": false
+  },
+  "stuffing_detected": false,
+  "typo_rate_sampled": 0.113,
+  "notes": [
+    "Analyzes compiled PDF (ATS realistic). Gates must pass; score must meet min-score.",
+    "Keyword stuffing, heavy formatting, or multi-column layouts reduce score."
+  ]
+}
