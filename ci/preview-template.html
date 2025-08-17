@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>PR Preview — Resume + ATS</title>
+<style>
+  :root { --bg:#0b0f14; --fg:#e6edf3; --muted:#9fb1c1; --card:#121821; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b; --bar:#1f2937; --link:#60a5fa; }
+  html,body { margin:0; background:var(--bg); color:var(--fg); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial; }
+  a{ color:var(--link); text-decoration:none } a:hover{text-decoration:underline}
+  header{ padding:20px; border-bottom:1px solid #1e2937; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+  .score{ font-size:36px; font-weight:800; padding:10px 16px; background:var(--card); border-radius:14px; }
+  .pill{ padding:6px 10px; border-radius:999px; background:#0f172a; color:var(--muted); border:1px solid #1f2937; }
+  main{ display:grid; grid-template-columns: 1.2fr 1fr; gap:18px; padding:18px; }
+  @media (max-width: 980px){ main{ grid-template-columns: 1fr; } }
+  .panel{ background:var(--card); border:1px solid #1e293b; border-radius:16px; padding:16px; }
+  h2{ margin:0 0 10px 0; font-size:16px; letter-spacing:.2px; color:var(--muted); }
+  .row{ display:flex; gap:10px; flex-wrap:wrap; }
+  .kv{ display:flex; justify-content:space-between; gap:10px; margin:8px 0;}
+  .bar{ height:8px; background:var(--bar); border-radius:8px; overflow:hidden;}
+  .bar > span{ display:block; height:100%; background:linear-gradient(90deg,#60a5fa,#22d3ee); }
+  .list{ display:grid; gap:6px; }
+  .flag{ display:flex; align-items:center; gap:8px; }
+  .ok{ color:var(--ok) } .bad{ color:var(--bad) } .warn{ color:var(--warn) }
+  .pdfbox{ height:80vh; border-radius:12px; overflow:hidden; border:1px solid #1e293b; background:#0a0f15; }
+  .muted{ color:var(--muted) }
+  .small{ font-size:12px }
+  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
+  code{ background:#0f172a; padding:2px 6px; border-radius:6px; border:1px solid #1f2937; }
+</style>
+</head>
+<body>
+<header>
+  <div class="score">ATS Score: <span id="score">—</span>/100</div>
+  <div class="pill">Role: <span id="role">—</span></div>
+  <div class="pill"><a href="resume.pdf" download>Download PDF</a></div>
+  <div class="pill small">This preview expires automatically.</div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Resume PDF</h2>
+    <div class="pdfbox">
+      <object data="resume.pdf#view=FitH" type="application/pdf" width="100%" height="100%">
+        <p class="muted">PDF embed not supported in this browser. <a href="resume.pdf">Open resume.pdf</a></p>
+      </object>
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>ATS Summary</h2>
+    <div class="row">
+      <div class="kv"><span>Keywords</span><strong id="s_keywords">—</strong></div>
+      <div class="bar"><span id="b_keywords" style="width:0%"></span></div>
+      <div class="kv"><span>Semantic</span><strong id="s_semantic">—</strong></div>
+      <div class="bar"><span id="b_semantic" style="width:0%"></span></div>
+      <div class="kv"><span>Sections</span><strong id="s_sections">—</strong></div>
+      <div class="bar"><span id="b_sections" style="width:0%"></span></div>
+      <div class="kv"><span>Experience</span><strong id="s_experience">—</strong></div>
+      <div class="bar"><span id="b_experience" style="width:0%"></span></div>
+      <div class="kv"><span>Impact</span><strong id="s_impact">—</strong></div>
+      <div class="bar"><span id="b_impact" style="width:0%"></span></div>
+      <div class="kv"><span>Hygiene</span><strong id="s_hygiene">—</strong></div>
+      <div class="bar"><span id="b_hygiene" style="width:0%"></span></div>
+    </div>
+
+    <h2 style="margin-top:14px;">Gates</h2>
+    <div class="list small" id="gates"></div>
+
+    <h2 style="margin-top:14px;">Format Flags</h2>
+    <div class="list small" id="flags"></div>
+
+    <div class="small muted" style="margin-top:10px">
+      Source: <code>ats-pro-report.json</code> generated from the compiled PDF.
+    </div>
+  </section>
+
+  <section class="panel">
+    <h2>Details</h2>
+    <div class="grid2 small">
+      <div><strong>Years detected:</strong> <span id="years">—</span></div>
+      <div><strong>Required coverage:</strong> <span id="reqcov">—</span></div>
+      <div><strong>Nice-to-have coverage:</strong> <span id="nthcov">—</span></div>
+      <div><strong>Phrase coverage:</strong> <span id="phcov">—</span></div>
+    </div>
+    <div class="small" id="missreq" style="margin-top:8px"></div>
+  </section>
+</main>
+
+<script>
+async function load() {
+  try {
+    const r = await fetch('ats-pro-report.json', {cache:'no-cache'});
+    if (!r.ok) throw new Error('no report');
+    const j = await r.json();
+
+    const score = j.overall_score ?? '—';
+    document.getElementById('score').textContent = score;
+    document.getElementById('role').textContent = j.role_name || '—';
+
+    const cs = j.component_scores || {};
+    const comps = ['keywords','semantic','sections','experience','impact','hygiene'];
+    comps.forEach(k=>{
+      const v = cs[k] ?? 0;
+      document.getElementById('s_'+k).textContent = v;
+      document.getElementById('b_'+k).style.width = Math.max(0, Math.min(100, v)) + '%';
+    });
+
+    const g = j.gates || {};
+    const gates = document.getElementById('gates');
+    gates.innerHTML = '';
+    Object.entries(g).forEach(([k,v])=>{
+      const el = document.createElement('div');
+      el.className = 'flag ' + (v ? 'ok' : 'bad');
+      el.textContent = (v ? '✔ ' : '✖ ') + k.replaceAll('_',' ').replace(/\b\w/g,m=>m.toUpperCase());
+      gates.appendChild(el);
+    });
+
+    const ff = j.format_flags || {};
+    const flags = document.getElementById('flags');
+    flags.innerHTML = '';
+    Object.entries(ff).forEach(([k,v])=>{
+      const el = document.createElement('div');
+      el.className = 'flag ' + (v ? 'warn' : 'ok');
+      el.textContent = (v ? '⚠ ' : '✔ ') + k.replaceAll('_',' ');
+      flags.appendChild(el);
+    });
+
+    const pct = x => (Math.round((x||0)*1000)/10)+'%';
+    document.getElementById('years').textContent = (j.years_total_detected ?? '—') + 'y';
+    document.getElementById('reqcov').textContent = pct(j.required_coverage);
+    document.getElementById('nthcov').textContent = pct(j.nice_to_have_coverage);
+    document.getElementById('phcov').textContent = pct(j.phrase_coverage);
+
+    const miss = j.missing_required_skills || [];
+    if (miss.length){
+      document.getElementById('missreq').innerHTML = '<strong>Missing required:</strong> ' + miss.join(', ');
+    }
+  } catch(e){
+    document.querySelector('main').insertAdjacentHTML('afterbegin',
+      '<div class="panel"><div class="warn">ATS report not found.</div><div class="small muted">We expected <code>ats-pro-report.json</code> in this folder.</div></div>'
+    );
+  }
+}
+load();
+</script>
+</body>
+</html>
