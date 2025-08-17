@@ -87,8 +87,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r ops/ci/ats-pro/requirements.txt
           python - <<'PY'
-import nltk; nltk.download('punkt', quiet=True)
-PY
+          import nltk; nltk.download('punkt', quiet=True)
+          PY
 
       # Run strict ATS analyzer but don't fail this preview job;
       # the blocking gate (if any) should live in a separate workflow.
