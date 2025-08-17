@@ -1,79 +1,216 @@
-name: PR Preview (Pages, 5-day retention)
+name: PR Preview (PDF + ATS on preview page)
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
-      - "resume_faangpath.tex"
-      - "resume.cls"
-      - ".github/workflows/**"
+      - "resume*.tex"
+      - "resume*.cls"
+      - ".github/workflows/pr-preview.yml"
+      - "job-description.txt"
 
 permissions:
-  contents: write        # push to gh-pages
-  pull-requests: write   # comment URL
+  contents: write
+  pull-requests: write
 
 env:
+  # --- User Configuration ---
   ROOT_TEX: resume_faangpath.tex
-  OUT_DIR: build
   SITE_BRANCH: gh-pages
+  PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH: ci/preview-template.html
+
+  # --- Tool Configuration (Centralized in main branch) ---
+  ATS_SCRIPT_PATH: .github/ats/ats_pro.py
+  ATS_REQS_FILE: .github/ats/requirements.txt
+  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
+
+concurrency:
+  group: pr-preview-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
-  preview:
+  pr-preview:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout main branch (for JD and ATS tools)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
 
-      - name: Build PDF (cached)
+      - name: Checkout PR branch (for resume source)
+        uses: actions/checkout@v4
+        with:
+          path: pr
+
+      - name: Build resume PDF
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
-          latexmk_use_xelatex: true
-          work_in_root_file_dir: true
-          extra_system_packages: "fontconfig"
-          cache: true
+          working_directory: pr
 
-      - name: Collect PDF
+      - name: Resolve Filenames
+        id: names
+        shell: bash
         run: |
-          mkdir -p "$OUT_DIR"
-          cp "${ROOT_TEX%.tex}.pdf" "$OUT_DIR/resume.pdf"
-          date -u +%Y-%m-%dT%H:%M:%SZ > "$OUT_DIR/.built_at"   # used for cleanup
+          BASE_NAME="${ROOT_TEX%.tex}"
+          echo "pdf_path=pr/${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
 
-      - name: Checkout gh-pages
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles('pr/.github/ats/requirements.txt', 'main/.github/ats/requirements.txt') }}
+
+      - name: Install ATS dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip
+          REQS="pr/${{ env.ATS_REQS_FILE }}"
+          if [ ! -f "$REQS" ]; then
+            REQS="main/${{ env.ATS_REQS_FILE }}"
+          fi
+          echo "Using requirements at: $REQS"
+          pip install -r "$REQS"
+          python -m spacy download en_core_web_sm
+
+      - name: Run ATS analysis (non-blocking)
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          ATS="pr/${{ env.ATS_SCRIPT_PATH }}"
+          if [ ! -f "$ATS" ]; then
+            ATS="main/${{ env.ATS_SCRIPT_PATH }}"
+          fi
+          if [ ! -f "ATS_TAXONOMY_PATH" ]; then
+            ATS_TAXONOMY_PATH="main/${{ env.ATS_TAXONOMY_PATH }}"
+          fi
+          JD="jd/job-description.txt"
+          if [ ! -f "$JD" ]; then
+            JD="main/jd/job-description.txt"
+          fi
+          echo "Using ATS script: $ATS"
+          echo "Using JD file:    $JD"
+          python "$ATS" \
+            --pdf "${{ steps.names.outputs.pdf_path }}" \
+            --jd "$JD" \
+            --taxonomy "ATS_TAXONOMY_PATH"
+            --out-json "ats-pro-report.json" \
+            --out-md   "ats-pro-report.md" \
+            --out-html "ats-pro-report.html" \
+            --min-score 75
+
+      - name: Checkout Pages branch to publish preview
         uses: actions/checkout@v4
         with:
           ref: ${{ env.SITE_BRANCH }}
           path: site
-          fetch-depth: 0
 
-      - name: Publish PR preview under /previews/pr-<number>/
+      - name: Copy files into preview folder
+        id: prep
+        shell: bash
         run: |
-          PR="pr-${{ github.event.pull_request.number }}"
-          DEST="site/previews/$PR"
-          mkdir -p "$DEST"
-          cp "$OUT_DIR/resume.pdf" "$DEST/resume.pdf"
-          cp "$OUT_DIR/.built_at" "$DEST/.built_at"
-          # simple viewer
-          cat > "$DEST/index.html" <<'HTML'
-          <!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-          <title>PR Preview — Resume</title>
-          <style>body{font-family:system-ui;max-width:860px;margin:40px auto;padding:0 16px}iframe{width:100%;height:900px;border:1px solid #ddd;border-radius:12px}</style>
-          <h1>PR Preview — Resume</h1>
-          <p>This preview will be auto-deleted ~5 days after last build.</p>
-          <p><a href="./resume.pdf">Download PDF</a></p>
-          <iframe src="./resume.pdf" loading="lazy"></iframe>
-          HTML
-          cd site
+          set -euo pipefail
+          PREVIEW_DIR="previews/pr-${{ github.event.pull_request.number }}"
+          mkdir -p "site/${PREVIEW_DIR}"
+          cp "${{ steps.names.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
+          cp "ats-pro-report.json" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
+          cp "ats-pro-report.md"   "site/${PREVIEW_DIR}/ats-pro-report.md"   || true
+          cp "ats-pro-report.html" "site/${PREVIEW_DIR}/ats-pro-report.html" || true
+          cp "site/${{ env.PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH }}" "site/${PREVIEW_DIR}/index.html"
+          date -u -Iseconds > "site/${PREVIEW_DIR}/.built_at"
+          echo "preview_url_path=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
+
+      - name: Commit & push preview
+        working-directory: site
+        run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git commit -m "PR preview: $PR @ $GITHUB_SHA" || echo "No changes"
+          git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
           git push origin ${{ env.SITE_BRANCH }}
 
-      - name: Comment PR with preview link
-        uses: actions/github-script@v7
+      - name: Find prior preview comment
+        id: find-comment
+        uses: peter-evans/find-comment@v3
         with:
-          script: |
-            const pr = context.payload.pull_request.number;
-            const url = `https://${context.repo.owner}.github.io/${context.repo.repo}/previews/pr-${pr}/`;
-            const body = `### 📄 Live PR Preview\n- **URL:** ${url}\n- Auto-expires ~5 days after the last preview build.`;
-            await github.rest.issues.createComment({ owner: context.repo.owner, repo: context.repo.repo, issue_number: pr, body });
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'Live PR Preview (with ATS)'
+
+      - name: Create or update PR comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### 📄 Live PR Preview (with ATS)
+            **Preview URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/
+            
+            _The page shows your compiled PDF and the ATS breakdown side-by-side._
+          edit-mode: replace
+
+      # --- New: ATS Nova comment on the PR ---
+      - name: Build ATS Nova comment body
+        id: ats-nova
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "ats-pro-report.json" ]; then
+            SCORE=$(jq -r '.overall_score // "n/a"' ats-pro-report.json)
+            GATES_OK=$(jq -r 'if (.gates | all) then "✅ All gates passed" else "❌ Some gates failed" end' ats-pro-report.json)
+            MISS=$(jq -r '(.missing_required_skills // []) | join(", ")' ats-pro-report.json)
+            LACK=$(jq -r '(.lacking_years // {}) | to_entries | sort_by(.value) | reverse | .[:5] | map("\(.key) (+\(.value) y)") | join(", ")' ats-pro-report.json)
+            SUG=$(jq -r '(.suggestions // []) | .[:6] | map("- " + .) | join("\n")' ats-pro-report.json)
+          else
+            SCORE="n/a"; GATES_OK="Report missing"; MISS=""; LACK=""; SUG=""
+          fi
+
+          {
+            echo 'body<<EOF'
+            echo "## ⚡ ATS Nova — Smart Fit Summary"
+            echo ""
+            echo "**Score:** **${SCORE}/100**  |  ${GATES_OK}"
+            echo ""
+            echo "[Open Live Preview]($(echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/")) · [HTML Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/ats-pro-report.html)"
+            echo ""
+            if [ -n "$MISS" ]; then
+              echo "**Missing required skills:** ${MISS}"
+            fi
+            if [ -n "$LACK" ]; then
+              echo "**Insufficient years (top gaps):** ${LACK}"
+            fi
+            if [ -n "$SUG" ]; then
+              echo ""
+              echo "### Suggestions"
+              echo "$SUG"
+            fi
+            echo ""
+            echo "<sub>Posted by <b>ATS Nova</b> 🤖</sub>"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Find prior ATS Nova comment
+        id: find-ats-nova
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'ATS Nova — Smart Fit Summary'
+
+      - name: Create or update ATS Nova comment
+        if: steps.ats-nova.outputs.body
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-ats-nova.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ steps.ats-nova.outputs.body }}
+          edit-mode: replace
