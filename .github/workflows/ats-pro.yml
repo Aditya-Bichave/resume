@@ -16,6 +16,8 @@ permissions:
 env:
   ROOT_TEX: resume_faangpath.tex
   REPORT_JSON: ats-pro-report.json
+  REPORT_MD: ats-pro-report.md
+  REPORT_HTML: ats-pro-report.html
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
   MIN_SCORE: "78"
@@ -97,49 +99,57 @@ jobs:
             --pdf "pr/${{ steps.names.outputs.pdf_name }}" \
             --jd "$JD" \
             --out-json "${{ env.REPORT_JSON }}" \
+            --out-md   "${{ env.REPORT_MD }}" \
+            --out-html "${{ env.REPORT_HTML }}" \
             --min-score "${{ env.MIN_SCORE }}" \
             --min-req-coverage "${{ env.MIN_REQUIRED_SKILLS_COVERAGE }}"
 
-      - name: Upload report artifact
+      - name: Upload report artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: ats-pro-report-strict
-          path: ${{ env.REPORT_JSON }}
+          path: |
+            ${{ env.REPORT_JSON }}
+            ${{ env.REPORT_MD }}
+            ${{ env.REPORT_HTML }}
           retention-days: 7
 
-      - name: Parse report for comment
+      - name: Build ATS Nova (Strict) comment
         id: parser
         if: steps.ats.outcome == 'success'
         shell: bash
         run: |
-          SCORE=$(jq -r .overall_score ${{ env.REPORT_JSON }})
-          GATES_PASSED=$(jq -r 'if (.gates | all) then "✅ All Passed" else "❌ Some Failed" end' ${{ env.REPORT_JSON }})
-          SUGGESTIONS=$(jq -r 'if (.suggestions | length > 0) then .suggestions | map("- \(. | gsub("\""; ""))") | join("\n") else "- ✅ Looks good!" end' ${{ env.REPORT_JSON }})
+          set -euo pipefail
+          SCORE=$(jq -r '.overall_score // "n/a"' "${{ env.REPORT_JSON }}")
+          GATES_PASSED=$(jq -r 'if (.gates | all) then "✅ All Passed" else "❌ Some Failed" end' "${{ env.REPORT_JSON }}")
+          SUGGESTIONS=$(jq -r '(.suggestions // []) | .[:6] | map("- " + .) | join("\n")' "${{ env.REPORT_JSON }}")
+          if [ -z "$SUGGESTIONS" ]; then SUGGESTIONS="- ✅ Looks good!"; fi
 
           {
             echo 'comment_body<<EOF'
-            echo "### ATS Pro Report (Strict Gate)"
+            echo "## ⚡ ATS Nova (Strict Gate)"
+            echo ""
             echo "| Score | Gates Status |"
             echo "|:-----:|:------------:|"
             echo "| **$SCORE / 100** | **$GATES_PASSED** |"
-            echo
-            echo "#### Actionable Suggestions"
+            echo ""
+            echo "### Suggestions"
             echo "$SUGGESTIONS"
-            echo
-            echo "_This is a strict check. See the **PR Preview** for a detailed visual breakdown._"
+            echo ""
+            echo "<sub>Posted by <b>ATS Nova</b> 🤖</sub>"
             echo 'EOF'
           } >> "$GITHUB_OUTPUT"
 
-      - name: Find prior ATS comment
+      - name: Find prior ATS Nova comment
         id: find-comment
         uses: peter-evans/find-comment@v3
         with:
           issue-number: ${{ github.event.pull_request.number }}
           comment-author: 'github-actions[bot]'
-          body-includes: 'ATS Pro Report (Strict Gate)'
+          body-includes: 'ATS Nova (Strict Gate)'
 
-      - name: Create or update PR comment
+      - name: Create or update PR comment (ATS Nova)
         if: steps.parser.outputs.comment_body
         uses: peter-evans/create-or-update-comment@v4
         with:

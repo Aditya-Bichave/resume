@@ -97,7 +97,10 @@ jobs:
           python "$ATS" \
             --pdf "${{ steps.names.outputs.pdf_path }}" \
             --jd "$JD" \
-            --out-json "ats-pro-report.json"
+            --out-json "ats-pro-report.json" \
+            --out-md   "ats-pro-report.md" \
+            --out-html "ats-pro-report.html" \
+            --min-score 75
 
       - name: Checkout Pages branch to publish preview
         uses: actions/checkout@v4
@@ -114,6 +117,8 @@ jobs:
           mkdir -p "site/${PREVIEW_DIR}"
           cp "${{ steps.names.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
           cp "ats-pro-report.json" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
+          cp "ats-pro-report.md"   "site/${PREVIEW_DIR}/ats-pro-report.md"   || true
+          cp "ats-pro-report.html" "site/${PREVIEW_DIR}/ats-pro-report.html" || true
           cp "site/${{ env.PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH }}" "site/${PREVIEW_DIR}/index.html"
           date -u -Iseconds > "site/${PREVIEW_DIR}/.built_at"
           echo "preview_url_path=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
@@ -145,4 +150,62 @@ jobs:
             **Preview URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/
             
             _The page shows your compiled PDF and the ATS breakdown side-by-side._
+          edit-mode: replace
+
+      # --- New: ATS Nova comment on the PR ---
+      - name: Build ATS Nova comment body
+        id: ats-nova
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "ats-pro-report.json" ]; then
+            SCORE=$(jq -r '.overall_score // "n/a"' ats-pro-report.json)
+            GATES_OK=$(jq -r 'if (.gates | all) then "✅ All gates passed" else "❌ Some gates failed" end' ats-pro-report.json)
+            MISS=$(jq -r '(.missing_required_skills // []) | join(", ")' ats-pro-report.json)
+            LACK=$(jq -r '(.lacking_years // {}) | to_entries | sort_by(.value) | reverse | .[:5] | map("\(.key) (+\(.value) y)") | join(", ")' ats-pro-report.json)
+            SUG=$(jq -r '(.suggestions // []) | .[:6] | map("- " + .) | join("\n")' ats-pro-report.json)
+          else
+            SCORE="n/a"; GATES_OK="Report missing"; MISS=""; LACK=""; SUG=""
+          fi
+
+          {
+            echo 'body<<EOF'
+            echo "## ⚡ ATS Nova — Smart Fit Summary"
+            echo ""
+            echo "**Score:** **${SCORE}/100**  |  ${GATES_OK}"
+            echo ""
+            echo "[Open Live Preview]($(echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/")) · [HTML Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/ats-pro-report.html)"
+            echo ""
+            if [ -n "$MISS" ]; then
+              echo "**Missing required skills:** ${MISS}"
+            fi
+            if [ -n "$LACK" ]; then
+              echo "**Insufficient years (top gaps):** ${LACK}"
+            fi
+            if [ -n "$SUG" ]; then
+              echo ""
+              echo "### Suggestions"
+              echo "$SUG"
+            fi
+            echo ""
+            echo "<sub>Posted by <b>ATS Nova</b> 🤖</sub>"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Find prior ATS Nova comment
+        id: find-ats-nova
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'ATS Nova — Smart Fit Summary'
+
+      - name: Create or update ATS Nova comment
+        if: steps.ats-nova.outputs.body
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-ats-nova.outputs.comment-id }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ steps.ats-nova.outputs.body }}
           edit-mode: replace
