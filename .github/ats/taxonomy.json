@@ -1,0 +1,1655 @@
+{
+  "schema_version": "1.0.0",
+  "meta": {
+    "generated_ist": "2025-08-17 16:05:47",
+    "scope": "Software engineering (senior ICs, tech leads, engineering managers)",
+    "notes": [
+      "Aliases capture common resume variants, acronyms, and misspellings.",
+      "Not exhaustive of all skills in the world, but broad enough to cover most modern resumes.",
+      "Use families for bucketing and scoring; use skills.* for matching and normalization.",
+      "You can safely extend any section; downstream logic should not rely on exact counts."
+    ],
+    "counts": {
+      "hard": {
+        "unique_items": 238,
+        "total_aliases": 326
+      },
+      "soft": {
+        "unique_items": 32,
+        "total_aliases": 65
+      },
+      "methodologies": {
+        "unique_items": 28,
+        "total_aliases": 64
+      },
+      "domains": {
+        "unique_items": 24,
+        "total_aliases": 105
+      },
+      "families": {
+        "unique_items": 20,
+        "members_total": 194
+      },
+      "certifications": {
+        "unique_items": 14,
+        "members_total": 51
+      },
+      "searchables": {
+        "unique_items": 15,
+        "aliases_total": 39
+      },
+      "titles": {
+        "unique_buckets": 3,
+        "members_total": 35
+      },
+      "seniority": {
+        "unique_buckets": 9,
+        "members_total": 28
+      },
+      "role_scope": {
+        "unique_buckets": 4,
+        "members_total": 17
+      }
+    }
+  },
+  "skills": {
+    "hard": {
+      "java": [
+        "jdk",
+        "jre",
+        "jvm",
+        "spring",
+        "spring boot",
+        "spring-cloud",
+        "hibernate",
+        "jpa"
+      ],
+      "kotlin": [
+        "kt",
+        "android kotlin"
+      ],
+      "scala": [
+        "akka",
+        "play framework"
+      ],
+      "groovy": [
+        "gradle groovy"
+      ],
+      "python": [
+        "py",
+        "cpython",
+        "pandas",
+        "numpy",
+        "fastapi",
+        "flask",
+        "django",
+        "poetry",
+        "pipenv"
+      ],
+      "golang": [
+        "go",
+        "go-lang",
+        "golang"
+      ],
+      "javascript": [
+        "js",
+        "es6",
+        "es2015",
+        "ecmascript",
+        "node",
+        "nodejs",
+        "node.js"
+      ],
+      "typescript": [
+        "ts"
+      ],
+      "c": [
+        "c lang"
+      ],
+      "c++": [
+        "cpp",
+        "cxx",
+        "stl"
+      ],
+      "c#": [
+        ".net",
+        "dotnet",
+        ".net core",
+        "asp.net core",
+        "entity framework",
+        "ef core"
+      ],
+      "rust": [
+        "cargo",
+        "tokio",
+        "actix"
+      ],
+      "ruby": [
+        "rails",
+        "ror",
+        "ruby on rails"
+      ],
+      "php": [
+        "laravel",
+        "symfony"
+      ],
+      "swift": [
+        "swiftui",
+        "cocoapods"
+      ],
+      "objective-c": [
+        "objc"
+      ],
+      "dart": [
+        "flutter"
+      ],
+      "elixir": [
+        "phoenix"
+      ],
+      "erlang": [
+        "otp",
+        "beam"
+      ],
+      "r": [
+        "tidyverse"
+      ],
+      "matlab": [],
+      "bash": [
+        "shell",
+        "sh"
+      ],
+      "powershell": [
+        "ps",
+        "ps1"
+      ],
+      "sql": [
+        "ansi sql"
+      ],
+      "react": [
+        "reactjs",
+        "react.js",
+        "nextjs",
+        "next.js",
+        "remix"
+      ],
+      "angular": [
+        "angularjs"
+      ],
+      "vue": [
+        "vuejs",
+        "nuxt",
+        "nuxt.js"
+      ],
+      "svelte": [
+        "sveltekit"
+      ],
+      "redux": [],
+      "webpack": [
+        "rollup",
+        "vite",
+        "parcel"
+      ],
+      "storybook": [],
+      "tailwind css": [
+        "tailwindcss",
+        "tailwind"
+      ],
+      "css": [
+        "scss",
+        "sass",
+        "less",
+        "postcss"
+      ],
+      "html": [
+        "html5"
+      ],
+      "android": [
+        "android sdk",
+        "jetpack",
+        "compose",
+        "kotlin android"
+      ],
+      "ios": [
+        "xcode",
+        "uikit"
+      ],
+      "react native": [
+        "rn"
+      ],
+      "flutter": [
+        "dart flutter"
+      ],
+      "spring boot": [
+        "spring-boot"
+      ],
+      "spring cloud": [
+        "spring-cloud"
+      ],
+      "micronaut": [],
+      "quarkus": [],
+      "vert.x": [
+        "vertx"
+      ],
+      "django": [],
+      "flask": [],
+      "fastapi": [],
+      "celery": [],
+      "express": [
+        "expressjs",
+        "express.js"
+      ],
+      "nestjs": [
+        "nest",
+        "nest.js"
+      ],
+      "koa": [],
+      "hapi": [],
+      "asp.net core": [
+        "aspnet core",
+        "asp .net core"
+      ],
+      "ruby on rails": [
+        "rails",
+        "ror"
+      ],
+      "laravel": [],
+      "phoenix": [],
+      "rest": [
+        "restful",
+        "rest api"
+      ],
+      "graphql": [
+        "apollo"
+      ],
+      "grpc": [
+        "protocol buffers",
+        "protobuf",
+        "proto"
+      ],
+      "soap": [],
+      "websockets": [
+        "socket.io"
+      ],
+      "oauth2": [
+        "oauth",
+        "oauth 2.0"
+      ],
+      "oidc": [
+        "open id connect",
+        "openid connect"
+      ],
+      "saml": [
+        "saml2"
+      ],
+      "jwt": [
+        "json web token"
+      ],
+      "aws": [
+        "amazon web services",
+        "ec2",
+        "s3",
+        "rds",
+        "aurora",
+        "dynamodb",
+        "lambda",
+        "api gateway",
+        "cloudfront",
+        "route 53",
+        "eks",
+        "ecs",
+        "fargate",
+        "elasticsearch service",
+        "opensearch service",
+        "sqs",
+        "sns",
+        "eventbridge",
+        "kinesis",
+        "emr",
+        "glue",
+        "athena",
+        "redshift",
+        "cloudwatch",
+        "cloudtrail",
+        "kms",
+        "secrets manager",
+        "parameter store",
+        "iam",
+        "vpc",
+        "alb",
+        "nlb",
+        "autoscaling",
+        "cloudformation",
+        "cdk",
+        "codebuild",
+        "codepipeline",
+        "ecr",
+        "efs",
+        "ebs",
+        "backup"
+      ],
+      "gcp": [
+        "google cloud",
+        "gke",
+        "compute engine",
+        "cloud storage",
+        "bigquery",
+        "cloud sql",
+        "spanner",
+        "pub/sub",
+        "dataflow",
+        "dataproc",
+        "composer",
+        "dataplex",
+        "vertex ai",
+        "cloud run",
+        "cloud functions",
+        "memorystore",
+        "apigee",
+        "cloud build",
+        "stackdriver",
+        "ops agent",
+        "iam",
+        "vpc",
+        "cloud armor",
+        "cloud kms"
+      ],
+      "azure": [
+        "microsoft azure",
+        "aks",
+        "app service",
+        "functions",
+        "cosmos db",
+        "sql database",
+        "event hubs",
+        "service bus",
+        "storage account",
+        "synapse",
+        "databricks on azure",
+        "adf",
+        "monitor",
+        "application insights",
+        "key vault",
+        "front door",
+        "traffic manager"
+      ],
+      "oci": [
+        "oracle cloud infrastructure"
+      ],
+      "cloudflare": [
+        "cloudflare workers",
+        "cloudflare pages",
+        "r2",
+        "kv",
+        "d1"
+      ],
+      "vercel": [],
+      "netlify": [],
+      "fly.io": [
+        "flyio"
+      ],
+      "docker": [
+        "dockerfile",
+        "docker compose",
+        "compose"
+      ],
+      "kubernetes": [
+        "k8s",
+        "helm",
+        "kustomize",
+        "operators",
+        "open shift",
+        "openshift"
+      ],
+      "istio": [
+        "service mesh"
+      ],
+      "linkerd": [],
+      "consul": [
+        "hashicorp consul"
+      ],
+      "envoy": [],
+      "nginx": [
+        "nginx ingress"
+      ],
+      "haproxy": [],
+      "traefik": [],
+      "nomad": [
+        "hashicorp nomad"
+      ],
+      "terraform": [
+        "hcl",
+        "tf",
+        "hashicorp terraform"
+      ],
+      "cloudformation": [
+        "cfn"
+      ],
+      "pulumi": [],
+      "cdk": [
+        "aws cdk"
+      ],
+      "ansible": [],
+      "chef": [],
+      "puppet": [],
+      "saltstack": [
+        "salt"
+      ],
+      "packer": [],
+      "vagrant": [],
+      "maven": [],
+      "gradle": [],
+      "sbt": [],
+      "npm": [],
+      "yarn": [],
+      "pnpm": [],
+      "bazel": [],
+      "buck": [],
+      "cmake": [],
+      "conan": [],
+      "github actions": [
+        "actions",
+        "gh actions"
+      ],
+      "gitlab ci": [
+        "gitlab pipelines"
+      ],
+      "jenkins": [
+        "jenkinsfile"
+      ],
+      "circleci": [],
+      "travis ci": [
+        "travis"
+      ],
+      "argo cd": [
+        "argocd",
+        "argo rollouts"
+      ],
+      "flux cd": [
+        "fluxcd"
+      ],
+      "spinnaker": [],
+      "teamcity": [],
+      "postgresql": [
+        "postgres",
+        "psql",
+        "timescaledb"
+      ],
+      "mysql": [
+        "mariadb",
+        "percona"
+      ],
+      "oracle": [
+        "oracle db"
+      ],
+      "sql server": [
+        "mssql"
+      ],
+      "sqlite": [],
+      "cockroachdb": [],
+      "yugabytedb": [
+        "yugabyte"
+      ],
+      "snowflake": [],
+      "bigquery": [],
+      "redshift": [],
+      "clickhouse": [],
+      "druid": [
+        "apache druid"
+      ],
+      "pinot": [
+        "apache pinot"
+      ],
+      "hive": [],
+      "presto": [
+        "trino",
+        "prestosql",
+        "presto db"
+      ],
+      "spark": [
+        "pyspark",
+        "spark streaming",
+        "spark sql",
+        "spark structured streaming"
+      ],
+      "hadoop": [
+        "hdfs",
+        "yarn",
+        "mapreduce"
+      ],
+      "airflow": [
+        "apache airflow"
+      ],
+      "dbt": [
+        "data build tool"
+      ],
+      "lakefs": [],
+      "delta lake": [
+        "deltalake"
+      ],
+      "apache iceberg": [
+        "iceberg"
+      ],
+      "apache hudi": [
+        "hudi"
+      ],
+      "kafka": [
+        "apache kafka",
+        "kafka streams",
+        "ksql",
+        "schema registry",
+        "consumer groups"
+      ],
+      "pulsar": [
+        "apache pulsar"
+      ],
+      "kinesis": [
+        "aws kinesis"
+      ],
+      "rabbitmq": [],
+      "activemq": [],
+      "nats": [],
+      "sqs": [
+        "amazon sqs"
+      ],
+      "pub/sub": [
+        "gcp pubsub",
+        "google pub/sub"
+      ],
+      "elasticsearch": [
+        "elastic",
+        "elastic search"
+      ],
+      "opensearch": [],
+      "solr": [
+        "apache solr"
+      ],
+      "redis": [
+        "redis streams",
+        "redis cluster"
+      ],
+      "memcached": [],
+      "mongodb": [
+        "mongo",
+        "atlas"
+      ],
+      "cassandra": [],
+      "neo4j": [],
+      "janusgraph": [],
+      "amazon neptune": [
+        "neptune db"
+      ],
+      "influxdb": [],
+      "prometheus tsdb": [
+        "prometheus"
+      ],
+      "graphite": [],
+      "opentsdb": [],
+      "prometheus": [
+        "prom"
+      ],
+      "grafana": [],
+      "loki": [],
+      "tempo": [],
+      "mimir": [],
+      "jaeger": [],
+      "zipkin": [],
+      "opentelemetry": [
+        "otel",
+        "o11y"
+      ],
+      "datadog": [],
+      "new relic": [],
+      "dynatrace": [],
+      "splunk": [],
+      "elk": [
+        "elastic stack",
+        "elasticsearch logstash kibana",
+        "logstash",
+        "kibana"
+      ],
+      "graylog": [],
+      "vault": [
+        "hashicorp vault"
+      ],
+      "kms": [
+        "key management service",
+        "aws kms",
+        "gcp kms",
+        "azure key vault"
+      ],
+      "okta": [],
+      "auth0": [],
+      "cognito": [
+        "amazon cognito"
+      ],
+      "keycloak": [],
+      "snyk": [],
+      "sonarqube": [
+        "sonar",
+        "sonarcloud"
+      ],
+      "dependabot": [],
+      "trivy": [],
+      "anchore": [],
+      "semgrep": [],
+      "owasp": [
+        "owasp top 10"
+      ],
+      "pci-dss": [
+        "pci compliance"
+      ],
+      "soc 2": [
+        "soc2"
+      ],
+      "iso 27001": [
+        "iso27001"
+      ],
+      "zero trust": [
+        "zero-trust"
+      ],
+      "junit": [],
+      "testng": [],
+      "mockito": [],
+      "wiremock": [],
+      "rest-assured": [
+        "restassured"
+      ],
+      "pytest": [],
+      "unittest": [
+        "python unittest"
+      ],
+      "nose": [
+        "nose2"
+      ],
+      "jest": [],
+      "mocha": [],
+      "chai": [],
+      "cypress": [],
+      "playwright": [],
+      "selenium": [],
+      "k6": [],
+      "gatling": [],
+      "jmeter": [],
+      "locust": [],
+      "git": [],
+      "github": [],
+      "gitlab": [],
+      "bitbucket": [],
+      "jira": [],
+      "confluence": [],
+      "slack": [],
+      "linux": [
+        "ubuntu",
+        "debian",
+        "rhel",
+        "centos",
+        "alpine linux"
+      ],
+      "windows server": [],
+      "macos": [],
+      "nginx plus": [],
+      "haproxy enterprise": [],
+      "dns": [],
+      "cdn": [
+        "cloudfront",
+        "akamai",
+        "fastly"
+      ],
+      "load balancer": [
+        "alb",
+        "nlb",
+        "nginx",
+        "haproxy"
+      ],
+      "vpn": [],
+      "vpc": [],
+      "feature flags": [
+        "launchdarkly",
+        "unleash",
+        "split.io",
+        "cloudbees"
+      ],
+      "pytorch": [
+        "torch",
+        "lightning"
+      ],
+      "tensorflow": [
+        "tf",
+        "keras"
+      ],
+      "scikit-learn": [
+        "sklearn"
+      ],
+      "onnx": [],
+      "mlflow": [],
+      "kubeflow": [],
+      "sagemaker": [
+        "aws sagemaker"
+      ],
+      "vertex ai": [],
+      "databricks": [
+        "mlruntime",
+        "delta live tables"
+      ],
+      "feast": [
+        "feature store"
+      ],
+      "great expectations": [
+        "gx"
+      ],
+      "amplitude": [],
+      "mixpanel": [],
+      "optimizely": [],
+      "launchdarkly-experiment": [
+        "ld experiment"
+      ]
+    },
+    "soft": {
+      "communication": [
+        "communicator",
+        "stakeholder communication",
+        "written communication",
+        "verbal communication",
+        "presentation skills",
+        "storytelling"
+      ],
+      "leadership": [
+        "people leadership",
+        "servant leadership",
+        "technical leadership",
+        "lead by example"
+      ],
+      "stakeholder management": [
+        "stakeholder engagement",
+        "stakeholder communication",
+        "executive communication"
+      ],
+      "mentoring": [
+        "mentored",
+        "coached",
+        "career development",
+        "sponsorship"
+      ],
+      "management": [
+        "performance reviews",
+        "hiring",
+        "recruiting",
+        "workforce planning"
+      ],
+      "ownership": [
+        "owned",
+        "end-to-end ownership",
+        "accountability",
+        "bias for action"
+      ],
+      "collaboration": [
+        "cross-functional collaboration",
+        "teamwork",
+        "partner management"
+      ],
+      "decision making": [
+        "data-driven decisions",
+        "tradeoff analysis"
+      ],
+      "strategic thinking": [
+        "strategy",
+        "roadmapping",
+        "vision"
+      ],
+      "product sense": [
+        "customer empathy",
+        "product mindset"
+      ],
+      "problem solving": [
+        "root cause analysis",
+        "5 whys"
+      ],
+      "systems thinking": [],
+      "negotiation": [],
+      "conflict resolution": [
+        "mediation"
+      ],
+      "prioritization": [
+        "backlog prioritization"
+      ],
+      "planning": [
+        "quarterly planning",
+        "capacity planning"
+      ],
+      "time management": [],
+      "delegation": [],
+      "influence": [
+        "influencing without authority"
+      ],
+      "adaptability": [
+        "resilience",
+        "change management"
+      ],
+      "risk management": [
+        "risk mitigation"
+      ],
+      "writing": [
+        "technical writing",
+        "docs"
+      ],
+      "meeting facilitation": [
+        "effective meetings"
+      ],
+      "feedback": [
+        "giving feedback",
+        "receiving feedback"
+      ],
+      "learning mindset": [
+        "growth mindset",
+        "continuous learning"
+      ],
+      "security mindset": [
+        "secure by design"
+      ],
+      "quality mindset": [
+        "quality first",
+        "shift-left"
+      ],
+      "operational excellence": [
+        "opsex",
+        "operational rigor"
+      ],
+      "incident management": [
+        "on-call",
+        "pager duty",
+        "postmortems",
+        "blameless culture"
+      ],
+      "customer focus": [
+        "customer obsession"
+      ],
+      "ethical judgment": [
+        "responsible ai",
+        "privacy aware"
+      ],
+      "coaching managers": [
+        "manager of managers"
+      ]
+    },
+    "methodologies": {
+      "agile": [
+        "agile methodology",
+        "agile delivery"
+      ],
+      "scrum": [
+        "sprint planning",
+        "retrospective",
+        "scrum master"
+      ],
+      "kanban": [
+        "wip limits",
+        "flow efficiency"
+      ],
+      "xp": [
+        "extreme programming",
+        "pair programming",
+        "continuous integration",
+        "refactoring"
+      ],
+      "lean": [
+        "lean software development",
+        "waste elimination"
+      ],
+      "safe": [
+        "scaled agile framework",
+        "pi planning"
+      ],
+      "less": [
+        "large-scale scrum"
+      ],
+      "nexus": [],
+      "disciplined agile": [
+        "dad"
+      ],
+      "devops": [
+        "ci/cd",
+        "continuous delivery",
+        "continuous deployment",
+        "trunk-based development",
+        "gitops"
+      ],
+      "sre": [
+        "service level indicators",
+        "slos",
+        "error budgets",
+        "toil reduction"
+      ],
+      "tdd": [
+        "test driven development"
+      ],
+      "bdd": [
+        "behavior driven development",
+        "gherkin",
+        "cucumber"
+      ],
+      "atdd": [
+        "acceptance test driven development"
+      ],
+      "contract testing": [
+        "pact"
+      ],
+      "waterfall": [],
+      "rup": [
+        "rational unified process"
+      ],
+      "spiral": [],
+      "rad": [
+        "rapid application development"
+      ],
+      "prototype model": [
+        "prototyping"
+      ],
+      "architecture patterns": [
+        "microservices",
+        "modular monolith",
+        "soa",
+        "event-driven",
+        "serverless",
+        "layered",
+        "hexagonal",
+        "clean architecture",
+        "micro-frontend",
+        "cqrs",
+        "event sourcing",
+        "data mesh",
+        "lakehouse"
+      ],
+      "security engineering": [
+        "threat modeling",
+        "security sdLC",
+        "zero trust"
+      ],
+      "quality engineering": [
+        "shift-left testing",
+        "test pyramid",
+        "non-functional testing"
+      ],
+      "experimentation": [
+        "a/b testing",
+        "feature flags",
+        "guardrails"
+      ],
+      "itil": [
+        "incident management",
+        "problem management",
+        "change management"
+      ],
+      "okrs": [
+        "objectives and key results"
+      ],
+      "pm frameworks": [
+        "pmbok",
+        "prince2"
+      ],
+      "change enablement": [
+        "cab"
+      ]
+    },
+    "domains": {
+      "fintech": [
+        "payments",
+        "banking",
+        "upi",
+        "cards",
+        "lending",
+        "wallets",
+        "core banking",
+        "risk",
+        "fraud",
+        "trading",
+        "brokerage"
+      ],
+      "insurtech": [
+        "policy admin",
+        "claims",
+        "underwriting",
+        "actuarial"
+      ],
+      "healthtech": [
+        "emr",
+        "ehr",
+        "hipaa",
+        "hl7",
+        "dicom",
+        "claims",
+        "telehealth"
+      ],
+      "edtech": [
+        "lms",
+        "learning platform",
+        "assessment"
+      ],
+      "adtech": [
+        "advertising",
+        "rtb",
+        "ad serving",
+        "dsp",
+        "ssp",
+        "cdp",
+        "dmp",
+        "pixels",
+        "attribution"
+      ],
+      "ecommerce": [
+        "marketplace",
+        "cart",
+        "checkout",
+        "catalog",
+        "search",
+        "recommendations",
+        "order management",
+        "oms",
+        "fulfillment",
+        "pricing",
+        "promo"
+      ],
+      "mobility": [
+        "ridesharing",
+        "fleet",
+        "telematics",
+        "maps",
+        "routing"
+      ],
+      "logistics": [
+        "wms",
+        "tms",
+        "last mile",
+        "reverse logistics"
+      ],
+      "travel": [
+        "booking",
+        "gds",
+        "pms",
+        "crm"
+      ],
+      "social": [
+        "feed",
+        "graph",
+        "messaging",
+        "moderation"
+      ],
+      "gaming": [
+        "matchmaking",
+        "anti-cheat",
+        "liveops"
+      ],
+      "media streaming": [
+        "ott",
+        "drm",
+        "cdn",
+        "adaptive bitrate"
+      ],
+      "telecom": [
+        "oss",
+        "bss",
+        "5g",
+        "network slicing"
+      ],
+      "iot": [
+        "mqtt",
+        "device management",
+        "edge computing"
+      ],
+      "agritech": [
+        "precision agriculture",
+        "farm management"
+      ],
+      "energy": [
+        "smart grid",
+        "metering",
+        "trading"
+      ],
+      "hrtech": [
+        "ats",
+        "payroll",
+        "performance mgmt",
+        "lms"
+      ],
+      "proptech": [
+        "listing",
+        "crm",
+        "property mgmt"
+      ],
+      "legaltech": [
+        "ediscovery",
+        "contract analysis"
+      ],
+      "govtech": [
+        "digital identity",
+        "e-governance"
+      ],
+      "saas": [
+        "subscription",
+        "billing",
+        "multi-tenant"
+      ],
+      "security": [
+        "siem",
+        "soar",
+        "iam",
+        "pki"
+      ],
+      "ai/ml": [
+        "ml platform",
+        "feature store",
+        "model serving"
+      ],
+      "data platform": [
+        "data lake",
+        "warehouse",
+        "governance"
+      ]
+    }
+  },
+  "families": {
+    "languages": [
+      "java",
+      "kotlin",
+      "scala",
+      "groovy",
+      "python",
+      "golang",
+      "javascript",
+      "typescript",
+      "c",
+      "c++",
+      "c#",
+      "rust",
+      "ruby",
+      "php",
+      "swift",
+      "objective-c",
+      "dart",
+      "elixir",
+      "erlang",
+      "r",
+      "matlab",
+      "bash",
+      "powershell",
+      "sql"
+    ],
+    "backend": [
+      "spring boot",
+      "spring cloud",
+      "micronaut",
+      "quarkus",
+      "vert.x",
+      "django",
+      "flask",
+      "fastapi",
+      "express",
+      "nestjs",
+      "koa",
+      "hapi",
+      "asp.net core",
+      "ruby on rails",
+      "laravel",
+      "phoenix",
+      "grpc",
+      "rest",
+      "graphql"
+    ],
+    "frontend": [
+      "react",
+      "angular",
+      "vue",
+      "svelte",
+      "redux",
+      "webpack",
+      "vite",
+      "storybook",
+      "tailwind css",
+      "css",
+      "html"
+    ],
+    "mobile": [
+      "android",
+      "ios",
+      "react native",
+      "flutter"
+    ],
+    "cloud": [
+      "aws",
+      "gcp",
+      "azure",
+      "oci",
+      "cloudflare",
+      "vercel",
+      "netlify",
+      "fly.io"
+    ],
+    "containers": [
+      "docker",
+      "kubernetes",
+      "istio",
+      "linkerd",
+      "consul",
+      "envoy",
+      "nginx",
+      "haproxy",
+      "traefik",
+      "nomad"
+    ],
+    "iac": [
+      "terraform",
+      "cloudformation",
+      "pulumi",
+      "cdk",
+      "ansible",
+      "chef",
+      "puppet",
+      "saltstack",
+      "packer",
+      "vagrant"
+    ],
+    "cicd": [
+      "github actions",
+      "gitlab ci",
+      "jenkins",
+      "circleci",
+      "travis ci",
+      "argo cd",
+      "flux cd",
+      "spinnaker",
+      "teamcity"
+    ],
+    "databases_relational": [
+      "postgresql",
+      "mysql",
+      "oracle",
+      "sql server",
+      "sqlite",
+      "cockroachdb",
+      "yugabytedb"
+    ],
+    "databases_nosql": [
+      "mongodb",
+      "cassandra",
+      "redis",
+      "dynamodb",
+      "couchbase",
+      "aerospike",
+      "neo4j",
+      "janusgraph",
+      "amazon neptune"
+    ],
+    "search": [
+      "elasticsearch",
+      "opensearch",
+      "solr"
+    ],
+    "olap_warehouse": [
+      "snowflake",
+      "redshift",
+      "bigquery",
+      "clickhouse",
+      "druid",
+      "pinot"
+    ],
+    "streaming": [
+      "kafka",
+      "pulsar",
+      "kinesis"
+    ],
+    "messaging": [
+      "rabbitmq",
+      "activemq",
+      "nats",
+      "sqs",
+      "pub/sub"
+    ],
+    "timeseries": [
+      "influxdb",
+      "prometheus tsdb",
+      "graphite",
+      "opentsdb"
+    ],
+    "big_data": [
+      "hadoop",
+      "spark",
+      "hive",
+      "presto",
+      "trino",
+      "airflow",
+      "dbt",
+      "delta lake",
+      "apache iceberg",
+      "apache hudi",
+      "lakefs"
+    ],
+    "observability": [
+      "prometheus",
+      "grafana",
+      "loki",
+      "tempo",
+      "mimir",
+      "jaeger",
+      "zipkin",
+      "opentelemetry",
+      "datadog",
+      "new relic",
+      "dynatrace",
+      "splunk",
+      "elk",
+      "graylog"
+    ],
+    "security": [
+      "vault",
+      "kms",
+      "okta",
+      "auth0",
+      "cognito",
+      "keycloak",
+      "snyk",
+      "sonarqube",
+      "dependabot",
+      "trivy",
+      "anchore",
+      "semgrep",
+      "owasp"
+    ],
+    "testing": [
+      "junit",
+      "testng",
+      "mockito",
+      "wiremock",
+      "rest-assured",
+      "pytest",
+      "unittest",
+      "jest",
+      "mocha",
+      "chai",
+      "cypress",
+      "playwright",
+      "selenium",
+      "k6",
+      "gatling",
+      "jmeter",
+      "locust"
+    ],
+    "vcs_collab": [
+      "git",
+      "github",
+      "gitlab",
+      "bitbucket",
+      "jira",
+      "confluence",
+      "slack"
+    ]
+  },
+  "certifications": {
+    "aws": [
+      "clf-c02",
+      "saa-c03",
+      "sap-c02",
+      "dva-c02",
+      "dop-c02",
+      "soa-c02",
+      "scs-c02",
+      "mls-c01",
+      "das-c01"
+    ],
+    "gcp": [
+      "associate cloud engineer",
+      "professional cloud architect",
+      "professional data engineer",
+      "professional devops engineer",
+      "professional cloud developer",
+      "professional cloud network engineer",
+      "professional cloud security engineer",
+      "professional machine learning engineer"
+    ],
+    "azure": [
+      "az-900",
+      "az-104",
+      "az-204",
+      "az-305",
+      "az-400",
+      "dp-203",
+      "ai-102",
+      "sc-100",
+      "sc-200"
+    ],
+    "kubernetes": [
+      "cka",
+      "ckad",
+      "cks"
+    ],
+    "hashicorp": [
+      "terraform associate"
+    ],
+    "scrum": [
+      "csm",
+      "psm i",
+      "psm ii",
+      "a-csm"
+    ],
+    "safe": [
+      "safe agilist",
+      "safe spc"
+    ],
+    "pmi": [
+      "pmp",
+      "acp"
+    ],
+    "itil": [
+      "itil foundation"
+    ],
+    "togaf": [
+      "togaf 9",
+      "togaf standard"
+    ],
+    "confluent": [
+      "confluent kafka developer",
+      "confluent kafka admin"
+    ],
+    "databricks": [
+      "lakehouse fundamentals",
+      "data engineer associate",
+      "data engineer professional",
+      "machine learning associate"
+    ],
+    "snowflake": [
+      "snowpro core",
+      "snowpro advanced"
+    ],
+    "red hat": [
+      "openshift administrator",
+      "openshift developer"
+    ]
+  },
+  "searchables": {
+    "node.js": [
+      "node",
+      "nodejs",
+      "node js"
+    ],
+    "react": [
+      "reactjs",
+      "react.js"
+    ],
+    "next.js": [
+      "next",
+      "nextjs"
+    ],
+    "nuxt.js": [
+      "nuxt",
+      "nuxtjs"
+    ],
+    ".net": [
+      ".net core",
+      "dotnet",
+      "dot net",
+      "asp.net",
+      "asp .net"
+    ],
+    "postgresql": [
+      "postgres",
+      "psql",
+      "postgre sql",
+      "postgreSQL"
+    ],
+    "kubernetes": [
+      "k8s",
+      "kube",
+      "kuber",
+      "kubernates"
+    ],
+    "elasticsearch": [
+      "elastic search",
+      "es"
+    ],
+    "github actions": [
+      "actions",
+      "gh actions",
+      "gha"
+    ],
+    "gitlab ci": [
+      "gitlab pipeline",
+      "gitlab pipelines"
+    ],
+    "apache kafka": [
+      "kafka",
+      "kafka streams",
+      "ksql"
+    ],
+    "grpc": [
+      "g rpc",
+      "g-rpc"
+    ],
+    "oauth2": [
+      "oauth 2",
+      "oauth 2.0"
+    ],
+    "rest": [
+      "restful",
+      "rest api"
+    ],
+    "graphql": [
+      "graph ql"
+    ]
+  },
+  "titles": {
+    "ic": [
+      "software engineer",
+      "engineer",
+      "developer",
+      "sde",
+      "sde i",
+      "sde ii",
+      "senior software engineer",
+      "senior engineer",
+      "backend engineer",
+      "full stack engineer",
+      "platform engineer",
+      "devops engineer",
+      "site reliability engineer",
+      "sre",
+      "data engineer",
+      "ml engineer"
+    ],
+    "lead": [
+      "tech lead",
+      "technical lead",
+      "lead engineer",
+      "team lead",
+      "staff engineer",
+      "staff software engineer",
+      "principal engineer",
+      "principal software engineer",
+      "architect",
+      "solutions architect",
+      "software architect"
+    ],
+    "management": [
+      "engineering manager",
+      "senior engineering manager",
+      "group engineering manager",
+      "director of engineering",
+      "senior director of engineering",
+      "vp engineering",
+      "cto",
+      "head of engineering"
+    ]
+  },
+  "seniority": {
+    "intern": [
+      "intern",
+      "trainee",
+      "apprentice"
+    ],
+    "junior": [
+      "jr",
+      "junior",
+      "i",
+      "entry level",
+      "associate"
+    ],
+    "mid": [
+      "ii",
+      "mid"
+    ],
+    "senior": [
+      "sr",
+      "senior",
+      "iii"
+    ],
+    "staff": [
+      "staff",
+      "iv"
+    ],
+    "principal": [
+      "principal",
+      "v"
+    ],
+    "distinguished": [
+      "distinguished",
+      "vi"
+    ],
+    "architect": [
+      "architect"
+    ],
+    "management": [
+      "manager",
+      "senior manager",
+      "director",
+      "senior director",
+      "vp",
+      "svp",
+      "cto",
+      "head"
+    ]
+  },
+  "role_scope": {
+    "ic": [
+      "individual contributor",
+      "ic"
+    ],
+    "lead": [
+      "lead",
+      "leading",
+      "led",
+      "team lead",
+      "technical lead",
+      "tl"
+    ],
+    "manager": [
+      "manager",
+      "managing",
+      "managed",
+      "people manager",
+      "line manager"
+    ],
+    "org_leader": [
+      "director",
+      "head of",
+      "vp",
+      "cto"
+    ]
+  }
+}

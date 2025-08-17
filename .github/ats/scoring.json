@@ -1,0 +1,4 @@
+{
+  "weights": { "recency": 0.08, "stability": 0.04 },
+  "thresholds": { "recency_half_life_months": 18, "job_hop_months": 8 }
+}

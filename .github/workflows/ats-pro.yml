@@ -22,6 +22,7 @@ env:
   ATS_REQS_FILE: .github/ats/requirements.txt
   MIN_SCORE: "78"
   MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
+  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
 
 concurrency:
   group: ats-pro-${{ github.event.pull_request.number }}
@@ -89,15 +90,19 @@ jobs:
           if [ ! -f "$ATS" ]; then
             ATS="main/${{ env.ATS_SCRIPT_PATH }}"
           fi
-          JD="pr/job-description.txt"
+          if [ ! -f "ATS_TAXONOMY_PATH" ]; then
+            ATS_TAXONOMY_PATH="main/${{ env.ATS_TAXONOMY_PATH }}"
+          fi
+          JD="jd/job-description.txt"
           if [ ! -f "$JD" ]; then
-            JD="main/job-description.txt"
+            JD="main/jd/job-description.txt"
           fi
           echo "Using ATS script: $ATS"
           echo "Using JD file:    $JD"
           python "$ATS" \
             --pdf "pr/${{ steps.names.outputs.pdf_name }}" \
             --jd "$JD" \
+            --taxonomy "ATS_TAXONOMY_PATH"
             --out-json "${{ env.REPORT_JSON }}" \
             --out-md   "${{ env.REPORT_MD }}" \
             --out-html "${{ env.REPORT_HTML }}" \

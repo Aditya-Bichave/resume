@@ -1,19 +1,27 @@
-# PDF & Text Processing
-pdfminer.six
-pdfplumber
-PyMuPDF
-Pillow
-pytesseract
+# Core
+rapidfuzz>=3.8.0
+textstat>=0.7.4
+python-dateutil>=2.9.0
+dateparser>=1.2.0
 
-# NLP & Scoring
-spacy
-rapidfuzz
-textstat
-python-dateutil
-dateparser
-scikit-learn
-sentence-transformers
-numpy
+# Grammar (optional)
+language-tool-python>=2.7.3
 
-# Optional: For grammar check if you enable it
-language-tool-python
+# NLP (optional)
+spacy>=3.7.2
+# If you want NER for company detection:
+# python -m spacy download en_core_web_sm
+
+# Embeddings (optional but recommended)
+sentence-transformers>=3.0.1
+scikit-learn>=1.5.0
+numpy>=1.26.0
+
+# PDF/Images
+pymupdf>=1.24.2
+pdfminer.six>=20231228
+pdfplumber>=0.11.0
+pillow>=10.2.0
+pytesseract>=0.3.10
+
+# Logging/CLI basics are stdlib
