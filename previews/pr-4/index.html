@@ -1,162 +1,161 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>PR Preview — Resume + ATS</title>
-<style>
-  :root { --bg:#0b0f14; --fg:#e6edf3; --muted:#9fb1c1; --card:#121821; --ok:#22c55e; --bad:#ef4444; --warn:#f59e0b; --bar:#1f2937; --link:#60a5fa; }
-  html,body { margin:0; background:var(--bg); color:var(--fg); font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, "Helvetica Neue", Arial; }
-  a{ color:var(--link); text-decoration:none } a:hover{text-decoration:underline}
-  header{ padding:20px; border-bottom:1px solid #1e2937; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
-  .score{ font-size:36px; font-weight:800; padding:10px 16px; background:var(--card); border-radius:14px; }
-  .pill{ padding:6px 10px; border-radius:999px; background:#0f172a; color:var(--muted); border:1px solid #1f2937; }
-  main{ display:grid; grid-template-columns: 1.2fr 1fr; gap:18px; padding:18px; }
-  @media (max-width: 980px){ main{ grid-template-columns: 1fr; } }
-  .panel{ background:var(--card); border:1px solid #1e293b; border-radius:16px; padding:16px; }
-  h2{ margin:0 0 10px 0; font-size:16px; letter-spacing:.2px; color:var(--muted); }
-  .kv-grid{ display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px 12px; }
-  .bar{ height:8px; background:var(--bar); border-radius:8px; overflow:hidden;}
-  .bar > span{ display:block; height:100%; background:linear-gradient(90deg,#60a5fa,#22d3ee); }
-  .list{ display:grid; gap:6px; }
-  .flag{ display:flex; align-items:center; gap:8px; }
-  .ok{ color:var(--ok) } .bad{ color:var(--bad) } .warn{ color:var(--warn) }
-  .pdfbox{ height:80vh; border-radius:12px; overflow:hidden; border:1px solid #1e293b; background:#0a0f15; }
-  .muted{ color:var(--muted) }
-  .small{ font-size:12px }
-  .grid2{ display:grid; grid-template-columns:1fr 1fr; gap:10px }
-  code{ background:#0f172a; padding:2px 6px; border-radius:6px; border:1px solid #1f2937; font-size:12px; }
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PR Preview · Resume + ATS</title>
+  <style>
+    :root{
+      --bg:#0b0d10; --panel:#12151a; --muted:#9aa4b2; --fg:#e7edf3; --ok:#19c37d; --bad:#ff5a5f; --warn:#ffb020; --bar:#1f2630; --accent:#4c8bf5;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    a{color:var(--accent);text-decoration:none}
+    header{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1c212b;background:linear-gradient(180deg,#0b0d10,#0c1117)}
+    header h1{font-size:16px;margin:0}
+    header .pill{border:1px solid #273142;padding:6px 10px;border-radius:999px}
+    main{display:grid;grid-template-columns: 1.1fr 1fr;gap:14px;padding:14px;height:calc(100% - 56px)}
+    .panel{background:var(--panel);border:1px solid #1c212b;border-radius:12px;padding:12px;overflow:auto}
+    .muted{color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 66px;gap:6px;align-items:center}
+    .bar{height:8px;background:var(--bar);border-radius:999px;overflow:hidden}
+    .bar>span{display:block;height:100%;background:linear-gradient(90deg,#3d7bfd,#00c6ff)}
+    .flag{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;margin:6px 0;border:1px solid #222a36}
+    .flag.ok{background:#0b2219;border-color:#103d2c;color:#c6f6df}
+    .flag.bad{background:#2a1112;border-color:#512327;color:#ffd1d3}
+    .flag.warn{background:#2a220d;border-color:#4d3b0d;color:#ffe5b0}
+    code{background:#0e131a;border:1px solid #1e2633;border-radius:6px;padding:2px 6px}
+    iframe{width:100%;height:100%;border:0;border-radius:8px;background:#0e131a}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    @media (max-width: 1024px){ main{grid-template-columns:1fr} iframe{min-height:70vh} }
+  </style>
 </head>
 <body>
-<header>
-  <div class="score">ATS Score: <span id="score">—</span>/100</div>
-  <div class="pill">Role: <span id="role">—</span></div>
-  <div class="pill"><a href="resume.pdf" download>Download PDF</a></div>
-  <div class="pill small">This preview expires automatically.</div>
-</header>
+  <header>
+    <h1>PR Preview <span class="muted">· Resume + ATS</span></h1>
+    <div class="pill"><a href="ats-pro-report.html" target="_blank" rel="noopener">Open HTML Report</a></div>
+  </header>
 
-<main>
-  <section class="panel">
-    <h2>Resume PDF</h2>
-    <div class="pdfbox">
-      <object data="resume.pdf#view=FitH" type="application/pdf" width="100%" height="100%">
-        <p class="muted">PDF embed not supported in this browser. <a href="resume.pdf">Open resume.pdf</a></p>
-      </object>
-    </div>
-  </section>
-
-  <div style="display:grid; gap:18px; align-content:start;">
-    <section class="panel">
-      <h2>ATS Summary</h2>
-      <div class="kv-grid" id="components">
-        <div class="muted">Loading...</div>
-      </div>
+  <main>
+    <section class="panel" style="min-height:240px;">
+      <iframe src="resume.pdf"></iframe>
     </section>
 
     <section class="panel">
-        <h2>Actionable Suggestions</h2>
-        <div class="list small" id="suggestions">
-          <div class="muted">Loading...</div>
+      <h3 style="margin:8px 0 12px;">ATS Summary</h3>
+      <div class="two-col">
+        <div>
+          <div class="muted">Overall Score</div>
+          <div style="font-size:28px;font-weight:700" id="score">—</div>
         </div>
-    </section>
-
-    <section class="panel">
-      <h2>Gates</h2>
-      <div class="list small" id="gates"><div class="muted">Loading...</div></div>
-    </section>
-
-    <section class="panel">
-      <h2>Details</h2>
-      <div class="grid2 small">
-        <div><strong>Years detected:</strong> <span id="years">—</span></div>
-        <div><strong>Years required:</strong> <span id="years_req">—</span></div>
-        <div><strong>Required coverage:</strong> <span id="reqcov">—</span></div>
-        <div><strong>Nice-to-have coverage:</strong> <span id="nthcov">—</span></div>
+        <div>
+          <div class="muted">Role</div>
+          <div id="role">—</div>
+        </div>
       </div>
-      <div class="small" id="missreq" style="margin-top:8px"></div>
+
+      <h4 style="margin:16px 0 8px;">Component Scores</h4>
+      <div class="grid" id="components">
+        <!-- dynamically filled -->
+      </div>
+
+      <h4 style="margin:16px 0 8px;">Gates</h4>
+      <div id="gates"></div>
+
+      <h4 style="margin:16px 0 8px;">Details</h4>
+      <div class="two-col">
+        <div><span class="muted">Total Years Detected:</span> <strong id="years">—</strong></div>
+        <div><span class="muted">Required (total/per-skill):</span> <strong id="years_req">—</strong></div>
+        <div><span class="muted">Required Coverage:</span> <strong id="reqcov">—</strong></div>
+        <div><span class="muted">Nice-to-have Coverage:</span> <strong id="nthcov">—</strong></div>
+      </div>
+
+      <div id="missreq" style="margin-top:10px;"></div>
+
+      <h4 style="margin:16px 0 8px;">Suggestions</h4>
+      <div id="suggestions"></div>
     </section>
-  </div>
-</main>
+  </main>
 
-<script>
-async function load() {
-  try {
-    const r = await fetch('ats-pro-report.json', { cache: 'no-cache' });
-    if (!r.ok) throw new Error('ATS report not found');
-    const j = await r.json();
+  <script>
+  async function load() {
+    try {
+      const r = await fetch('ats-pro-report.json', { cache: 'no-cache' });
+      if (!r.ok) throw new Error('ATS report not found');
+      const j = await r.json();
 
-    document.getElementById('score').textContent = j.overall_score ?? '—';
-    document.getElementById('role').textContent = j.role_name || '—';
+      const $ = (id) => document.getElementById(id);
+      const pct = x => (x == null ? '—' : (Math.round(Number(x) * 10) / 10));
 
-    // Populate Component Scores
-    const cs = j.component_scores || {};
-    const componentsEl = document.getElementById('components');
-    componentsEl.innerHTML = '';
-    const componentMap = {
-      'keywords': 'Keywords',
-      'experience_fit': 'Experience Fit',
-      'seniority_fit': 'Seniority Fit'
-    };
-    Object.entries(componentMap).forEach(([key, label]) => {
-      const value = cs[key] ?? 0;
-      componentsEl.innerHTML += `
-        <span>${label}</span>
-        <div class="bar"><span style="width:${Math.max(0, Math.min(100, value))}%"></span></div>
-        <strong>${value}</strong>
-      `;
-    });
+      $('score').textContent = j.overall_score ?? '—';
+      $('role').textContent  = j.role_name || j.target_role || '—';
 
-    // Populate Gates
-    const g = j.gates || {};
-    const gatesEl = document.getElementById('gates');
-    gatesEl.innerHTML = '';
-    Object.entries(g).forEach(([k, v]) => {
-      const el = document.createElement('div');
-      el.className = 'flag ' + (v ? 'ok' : 'bad');
-      const text = k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
-      el.textContent = (v ? '✔ ' : '✖ ') + text;
-      gatesEl.appendChild(el);
-    });
-
-    // Populate Suggestions
-    const suggestions = j.suggestions || [];
-    const suggestionsEl = document.getElementById('suggestions');
-    suggestionsEl.innerHTML = '';
-    if (suggestions.length > 0) {
-      suggestions.forEach(s => {
-        const el = document.createElement('div');
-        el.className = 'flag warn';
-        el.innerHTML = `<span>⚠</span> <span>${s}</span>`;
-        suggestionsEl.appendChild(el);
+      // Component Scores: render any present keys (ignore formatting_penalty_pct)
+      const cs = j.component_scores || {};
+      const labels = {
+        keywords:'Keywords', semantic:'Semantic', sections:'Sections',
+        experience:'Experience', impact:'Impact', quality:'Quality', seniority:'Seniority'
+      };
+      const componentsEl = $('components');
+      componentsEl.innerHTML = '';
+      Object.entries(cs).forEach(([key,val])=>{
+        if (key === 'formatting_penalty_pct') return;
+        const v = Math.max(0, Math.min(100, Number(val)||0));
+        componentsEl.insertAdjacentHTML('beforeend', `
+          <span>${labels[key] || key}</span>
+          <div class="bar"><span style="width:${v}%"></span></div>
+          <strong>${v}</strong>
+        `);
       });
-    } else {
-      suggestionsEl.innerHTML = `<div class="flag ok">✔ No major suggestions. Looks good!</div>`;
+
+      // Gates
+      const gatesEl = $('gates');
+      gatesEl.innerHTML = '';
+      (Object.entries(j.gates || {})).forEach(([k,v])=>{
+        const label = k.replace(/_/g,' ').replace(/\b\w/g, l=>l.toUpperCase());
+        gatesEl.insertAdjacentHTML('beforeend',
+          `<div class="flag ${v?'ok':'bad'}">${v?'✔':'✖'} ${label}</div>`);
+      });
+
+      // Suggestions
+      const suggestions = j.suggestions || [];
+      const suggEl = $('suggestions');
+      suggEl.innerHTML = '';
+      if (suggestions.length) {
+        suggestions.forEach(s => suggEl.insertAdjacentHTML('beforeend',
+          `<div class="flag warn"><span>⚠</span><span>${s}</span></div>`));
+      } else {
+        suggEl.innerHTML = `<div class="flag ok">✔ No major suggestions. Looks good!</div>`;
+      }
+
+      // Details
+      $('years').textContent     = (j.years_total_detected != null) ? j.years_total_detected + 'y' : '—';
+      const perSkill = j.per_skill_years_required || {};
+      $('years_req').textContent = (Object.keys(perSkill).length ? 'per-skill' :
+                                   (j.min_years_experience_total != null ? (j.min_years_experience_total + 'y') : '—'));
+      const toPercent = x => (x==null ? '—' : (Math.round((Number(x)||0)*1000)/10) + '%');
+      $('reqcov').textContent = toPercent(j.required_coverage);
+      $('nthcov').textContent = toPercent(j.nice_to_have_coverage);
+
+      const miss = j.missing_required_skills || [];
+      $('missreq').innerHTML = miss.length
+        ? '<strong class="bad">Missing required:</strong> ' + miss.map(s=>`<code>${s}</code>`).join(', ')
+        : '<div class="flag ok">✔ All required skills found.</div>';
+
+      // Anti-gaming heads-up (optional)
+      const ag = j.anti_gaming || {};
+      if ((ag.white_text_ratio||0) > 0.01 || (ag.tiny_font_ratio||0) > 0.01) {
+        gatesEl.insertAdjacentHTML('afterbegin',
+          '<div class="flag warn">⚠ Anti-gaming suspicion (hidden/tiny text)</div>');
+      }
+    } catch (e) {
+      console.error(e);
+      document.querySelector('main').insertAdjacentHTML('afterbegin',
+        '<div class="panel" style="grid-column: span 2;"><div class="flag warn">ATS report not found or invalid.</div><div class="muted">The ATS analysis step may have failed. Check the workflow run for errors.</div></div>'
+      );
     }
-
-    // Populate Details
-    const details = j.details || {};
-    const pct = x => (Math.round((x || 0) * 1000) / 10) + '%';
-    document.getElementById('years').textContent = (details.years_total_detected ?? '—') + 'y';
-    document.getElementById('years_req').textContent = (details.years_total_required ?? '—') + 'y';
-    document.getElementById('reqcov').textContent = pct(details.required_coverage);
-    document.getElementById('nthcov').textContent = pct(details.nice_to_have_coverage);
-
-    const miss = details.missing_required_skills || [];
-    if (miss.length > 0) {
-      document.getElementById('missreq').innerHTML = '<strong class="bad">Missing required:</strong> ' + miss.map(s => `<code>${s}</code>`).join(', ');
-    } else {
-      document.getElementById('missreq').innerHTML = '<strong class="ok">✔ All required skills found.</strong>';
-    }
-
-  } catch (e) {
-    console.error("Failed to load or parse ATS report:", e);
-    document.querySelector('main').insertAdjacentHTML('afterbegin',
-      '<div class="panel" style="grid-column: span 2;"><div class="warn">ATS report not found or is invalid.</div><div class="small muted">The ATS analysis step may have failed. Check the workflow run for errors.</div></div>'
-    );
   }
-}
-load();
-</script>
+  load();
+  </script>
 </body>
 </html>
