@@ -16,15 +16,14 @@ permissions:
   pull-requests: write
 
 env:
-  ROOT_TEX: resume_faangpath.tex               # <-- change if your LaTeX root is different
+  ROOT_TEX: resume_faangpath.tex
   REPORT_JSON: ats-pro-report.json
   REPORT_MD: ats-pro-report.md
 
-  # Where the ATS code & roles live
-  SITE_BRANCH: gh_pages                        # <-- you said your branch is gh_pages
+  # Files that live inside the Pages branch checkout (we detect the branch name below)
   ROLE_FILE: ci/ats-pro/roles/backend-java.json
 
-  # Strictness (used by the analyzer; this preview job will still post a comment)
+  # Strictness thresholds (the analyzer exits non-zero if these fail)
   MIN_SCORE: "78"
   MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
 
@@ -40,7 +39,7 @@ jobs:
       - name: Checkout PR branch (resume source)
         uses: actions/checkout@v4
 
-      # Pull JD from main so all PRs evaluate against the canonical JD
+      # Always read job-description.txt from main
       - name: Checkout main (job-description.txt)
         uses: actions/checkout@v4
         with:
@@ -50,17 +49,31 @@ jobs:
             job-description.txt
           sparse-checkout-cone: true
 
-      # Compile the PDF (what ATS actually sees)
       - name: Build resume PDF
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
 
-      # Bring in ATS code (+ roles) from your gh_pages branch
-      - name: Checkout gh_pages (ATS code)
+      # Auto-detect which Pages branch exists: gh_pages or gh-pages
+      - name: Resolve Pages branch name
+        id: pages
+        shell: bash
+        run: |
+          set -e
+          if git ls-remote --exit-code --heads origin gh_pages >/dev/null 2>&1; then
+            echo "ref=gh_pages" >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            echo "ref=gh-pages" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Pages branch found (expected 'gh_pages' or 'gh-pages')."
+            exit 1
+          fi
+
+      # Pull ATS code (script, requirements, roles) from the Pages branch
+      - name: Checkout Pages branch (ATS code)
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.SITE_BRANCH }}
+          ref: ${{ steps.pages.outputs.ref }}
           path: ops
 
       - name: Cache pip & HF models
@@ -80,11 +93,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r ops/ci/ats-pro/requirements.txt
-          python - <<'PY'
-          import nltk; nltk.download('punkt', quiet=True)
-          PY
+          python -c "import nltk; nltk.download('punkt', quiet=True)"
 
-      # Run strict analyzer but don't fail this step; we'll post the report first
+      # Run strict analyzer; allow this step to fail so we can still post the PR comment,
+      # then we fail the job at the end based on this step's outcome.
       - name: Run ATS Pro analysis (non-blocking)
         id: ats
         shell: bash
@@ -126,7 +138,6 @@ jobs:
           edit-mode: replace
         continue-on-error: true
 
-      # If the analyzer exited non-zero (gates or score failed), fail the workflow now
       - name: Fail the job if analysis failed
         if: steps.ats.outcome == 'failure'
         run: |

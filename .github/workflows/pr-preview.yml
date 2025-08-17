@@ -7,29 +7,25 @@ on:
       - "resume*.tex"
       - "resume*.cls"
       - ".github/workflows/**"
-      # If you also want rebuilds when JD changes on PR branches, uncomment:
+      # If you also want rebuilds when JD changes in the PR branch, uncomment:
       # - "job-description.txt"
 
 permissions:
-  contents: write         # needed to push preview to pages branch
-  pull-requests: write    # needed to post/update PR comment
+  contents: write
+  pull-requests: write
 
 env:
   # <<< CHANGE THIS if your LaTeX root file is different >>>
   ROOT_TEX: resume_faangpath.tex
 
-  # Pages branch that hosts previews + template & ATS code
-  # Use 'gh-pages' if that's your Pages branch; change to 'gh_pages' if yours uses underscore
-  SITE_BRANCH: gh-pages
-
-  # Folder within Pages branch that stores per-PR previews
+  # Previews live under this folder on the Pages branch
   PREVIEWS_DIR: previews
 
-  # Paths inside the gh-pages checkout (we copy these each build)
+  # Paths (inside the Pages branch) for ATS role + preview template
   ATS_ROLE_FILE: ci/ats-pro/roles/backend-java.json
   PREVIEW_TEMPLATE: ci/preview-template.html
 
-  # ATS strictness (non-blocking here; we always show the page)
+  # ATS strictness (this preview job won't fail on score; it's just for display)
   ATS_MIN_SCORE: "78"
   ATS_MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
 
@@ -40,7 +36,6 @@ concurrency:
 jobs:
   pr-preview:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout PR branch (resume source)
         uses: actions/checkout@v4
@@ -61,11 +56,26 @@ jobs:
         with:
           root_file: ${{ env.ROOT_TEX }}
 
-      # Bring in ATS code and the preview HTML template from the pages branch
-      - name: Checkout pages branch (ATS code + template)
+      # Figure out which Pages branch exists: gh_pages or gh-pages
+      - name: Resolve Pages branch name
+        id: pages
+        shell: bash
+        run: |
+          set -e
+          if git ls-remote --exit-code --heads origin gh_pages >/dev/null 2>&1; then
+            echo "ref=gh_pages" >> "$GITHUB_OUTPUT"
+          elif git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            echo "ref=gh-pages" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Pages branch found (expected 'gh_pages' or 'gh-pages')."
+            exit 1
+          fi
+
+      # Bring in ATS code and the preview HTML template from the Pages branch
+      - name: Checkout Pages branch (ATS code + template)
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.SITE_BRANCH }}
+          ref: ${{ steps.pages.outputs.ref }}
           path: ops
 
       # Optional speed-up for embeddings/models
@@ -86,12 +96,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r ops/ci/ats-pro/requirements.txt
-          python - <<'PY'
-          import nltk; nltk.download('punkt', quiet=True)
-          PY
+          python -c "import nltk; nltk.download('punkt', quiet=True)"
 
       # Run strict ATS analyzer but don't fail this preview job;
-      # the blocking gate (if any) should live in a separate workflow.
+      # the “blocking” version (if desired) should live in a separate workflow.
       - name: Run ATS analysis (non-blocking)
         shell: bash
         continue-on-error: true
@@ -106,11 +114,11 @@ jobs:
             --min-score "${{ env.ATS_MIN_SCORE }}" \
             --min-req-coverage "${{ env.ATS_MIN_REQUIRED_SKILLS_COVERAGE }}"
 
-      # Prepare/update the per-PR preview folder in the pages branch
-      - name: Checkout pages branch to publish preview
+      # Prepare/update the per-PR preview folder in the Pages branch
+      - name: Checkout Pages branch to publish preview
         uses: actions/checkout@v4
         with:
-          ref: ${{ env.SITE_BRANCH }}
+          ref: ${{ steps.pages.outputs.ref }}
           path: site
 
       - name: Copy files into preview folder
@@ -126,7 +134,7 @@ jobs:
           cp "ats-pro-report.json" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
           cp "ops/${{ env.PREVIEW_TEMPLATE }}" "site/${PREVIEW_DIR}/index.html"
 
-          echo "preview_dir=${PREVIEW_DIR}" >> $GITHUB_OUTPUT
+          echo "preview_dir=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
 
       - name: Commit & push preview
         working-directory: site
@@ -135,7 +143,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "PR preview: #${{ github.event.pull_request.number }} @ $GITHUB_SHA" || echo "No changes to commit"
-          git push origin ${{ env.SITE_BRANCH }}
+          git push origin ${{ steps.pages.outputs.ref }}
 
       # Idempotent PR comment with the preview URL
       - name: Find prior preview comment
