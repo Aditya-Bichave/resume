@@ -29,13 +29,22 @@ jobs:
   ats-pro:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout main branch (fallback for ATS deps/tools)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+
       - name: Checkout PR branch
         uses: actions/checkout@v4
+        with:
+          path: pr
 
       - name: Build resume PDF
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
+          working_directory: pr
 
       - name: Resolve PDF filename
         id: names
@@ -53,21 +62,40 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles(env.ATS_REQS_FILE) }}
+          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles('pr/.github/ats/requirements.txt', 'main/.github/ats/requirements.txt') }}
 
       - name: Install ATS dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
-          pip install -r ${{ env.ATS_REQS_FILE }}
+          REQS="pr/${{ env.ATS_REQS_FILE }}"
+          if [ ! -f "$REQS" ]; then
+            REQS="main/${{ env.ATS_REQS_FILE }}"
+          fi
+          echo "Using requirements at: $REQS"
+          pip install -r "$REQS"
           python -m spacy download en_core_web_sm
 
       - name: Run ATS Pro analysis (non-blocking)
         id: ats
         continue-on-error: true
+        shell: bash
         run: |
-          python ${{ env.ATS_SCRIPT_PATH }} \
-            --pdf "${{ steps.names.outputs.pdf_name }}" \
-            --jd "job-description.txt" \
+          set -euo pipefail
+          ATS="pr/${{ env.ATS_SCRIPT_PATH }}"
+          if [ ! -f "$ATS" ]; then
+            ATS="main/${{ env.ATS_SCRIPT_PATH }}"
+          fi
+          JD="pr/job-description.txt"
+          if [ ! -f "$JD" ]; then
+            JD="main/job-description.txt"
+          fi
+          echo "Using ATS script: $ATS"
+          echo "Using JD file:    $JD"
+          python "$ATS" \
+            --pdf "pr/${{ steps.names.outputs.pdf_name }}" \
+            --jd "$JD" \
             --out-json "${{ env.REPORT_JSON }}" \
             --min-score "${{ env.MIN_SCORE }}" \
             --min-req-coverage "${{ env.MIN_REQUIRED_SKILLS_COVERAGE }}"

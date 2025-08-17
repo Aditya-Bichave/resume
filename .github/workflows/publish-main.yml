@@ -17,7 +17,7 @@ env:
   # --- User Configuration ---
   ROOT_TEX: resume_faangpath.tex
   SITE_BRANCH: gh-pages
-
+  
   # --- Tool Configuration (Centralized in main branch) ---
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
@@ -89,10 +89,10 @@ jobs:
           VERSION_TAG="${{ steps.meta.outputs.dateslug }}-${{ steps.meta.outputs.shortsha }}"
           VERSION_DIR="versions/${VERSION_TAG}"
           mkdir -p "site/${VERSION_DIR}" "site/latest"
-
+          
           cp "build/resume.pdf" "site/${VERSION_DIR}/resume.pdf"
           cp "build/ats-pro-report.json" "site/${VERSION_DIR}/ats-pro-report.json"
-
+          
           # Always copy for latest (avoid symlinks on GH Pages)
           cp "site/${VERSION_DIR}/resume.pdf" "site/latest/resume.pdf"
 

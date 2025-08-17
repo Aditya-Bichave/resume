@@ -24,13 +24,14 @@ jobs:
           fetch-depth: 0
 
       - name: Delete previews older than TTL
+        shell: bash
         run: |
-          set -e
-          ttl_secs=$(( $TTL_DAYS * 24 * 3600 ))
+          set -euo pipefail
+          ttl_secs=$(( TTL_DAYS * 24 * 3600 ))
           now=$(date -u +%s)
           removed=0
           if [ -d "$PREVIEWS_DIR" ]; then
-            for d in $PREVIEWS_DIR/pr-*; do
+            for d in "$PREVIEWS_DIR"/pr-*; do
               [ -d "$d" ] || continue
               if [ -f "$d/.built_at" ]; then
                 built=$(date -u -d "$(cat "$d/.built_at")" +%s 2>/dev/null || echo 0)
@@ -38,18 +39,18 @@ jobs:
                 built=$(git log -1 --format=%ct -- "$d" 2>/dev/null || echo 0)
               fi
               age=$(( now - built ))
-              if [ $age -gt $ttl_secs ]; then
+              if [ "$age" -gt "$ttl_secs" ]; then
                 echo "Removing $d (age ${age}s > ${ttl_secs}s)"
                 git rm -r "$d"
                 removed=$((removed+1))
               fi
             done
           fi
-          if [ $removed -gt 0 ]; then
+          if [ "$removed" -gt 0 ]; then
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
             git commit -m "Cleanup ${removed} old PR previews (> ${TTL_DAYS} days)"
-            git push origin $SITE_BRANCH
+            git push origin "$SITE_BRANCH"
           else
             echo "Nothing to remove."
           fi

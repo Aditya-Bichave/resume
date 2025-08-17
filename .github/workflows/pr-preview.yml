@@ -64,20 +64,39 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles(format('main/{0}', env.ATS_REQS_FILE)) }}
+          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles('pr/.github/ats/requirements.txt', 'main/.github/ats/requirements.txt') }}
 
       - name: Install ATS dependencies
+        shell: bash
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
-          pip install -r "main/${{ env.ATS_REQS_FILE }}"
+          REQS="pr/${{ env.ATS_REQS_FILE }}"
+          if [ ! -f "$REQS" ]; then
+            REQS="main/${{ env.ATS_REQS_FILE }}"
+          fi
+          echo "Using requirements at: $REQS"
+          pip install -r "$REQS"
           python -m spacy download en_core_web_sm
 
       - name: Run ATS analysis (non-blocking)
         continue-on-error: true
+        shell: bash
         run: |
-          python "main/${{ env.ATS_SCRIPT_PATH }}" \
+          set -euo pipefail
+          ATS="pr/${{ env.ATS_SCRIPT_PATH }}"
+          if [ ! -f "$ATS" ]; then
+            ATS="main/${{ env.ATS_SCRIPT_PATH }}"
+          fi
+          JD="pr/job-description.txt"
+          if [ ! -f "$JD" ]; then
+            JD="main/job-description.txt"
+          fi
+          echo "Using ATS script: $ATS"
+          echo "Using JD file:    $JD"
+          python "$ATS" \
             --pdf "${{ steps.names.outputs.pdf_path }}" \
-            --jd "main/job-description.txt" \
+            --jd "$JD" \
             --out-json "ats-pro-report.json"
 
       - name: Checkout Pages branch to publish preview
@@ -124,6 +143,6 @@ jobs:
           body: |
             ### 📄 Live PR Preview (with ATS)
             **Preview URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/
-
+            
             _The page shows your compiled PDF and the ATS breakdown side-by-side._
           edit-mode: replace
