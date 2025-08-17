@@ -17,3 +17,10 @@ numpy
 
 # Optional: For grammar check if you enable it
 language-tool-python
+
+PyMuPDF==1.24.9           # for fast PDF text extraction
+spacy==3.7.6              # optional but recommended
+# Pin the model to avoid runtime download (optional)
+https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.7.1/en_core_web_sm-3.7.1-py3-none-any.whl
+language-tool-python==2.7.1  # optional; enables --grammar-check
+pdfminer.six==20240706       # fallback if PyMuPDF missing
