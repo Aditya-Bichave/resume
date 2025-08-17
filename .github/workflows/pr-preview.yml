@@ -55,6 +55,16 @@ jobs:
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
+      
+      - name: Resolve filenames
+        id: names
+        shell: bash
+        run: |
+          ROOT="${{ env.ROOT_TEX }}"
+          BASE="${ROOT%.tex}"
+          echo "pdf=${BASE}.pdf" >> "$GITHUB_OUTPUT"
+          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
+
 
       # Figure out which Pages branch exists: gh_pages or gh-pages
       - name: Resolve Pages branch name
@@ -105,13 +115,15 @@ jobs:
         continue-on-error: true
         run: |
           python ops/ci/ats-pro/ats_pro.py \
-            --pdf "${{ env.ROOT_TEX }}".pdf \
+            --pdf "${{ steps.names.outputs.pdf }}" \
             --tex "${{ env.ROOT_TEX }}" \
             --jd  "jd/job-description.txt" \
             --role "ops/${{ env.ATS_ROLE_FILE }}" \
             --out-json "ats-pro-report.json" \
             --out-md   "ats-pro-report.md" \
             --min-score "${{ env.ATS_MIN_SCORE }}" \
+            --min-req-coverage "${{ env.ATS_MIN_REQUIRED_SKILLS_COVERAGE }}"
+
             --min-req-coverage "${{ env.ATS_MIN_REQUIRED_SKILLS_COVERAGE }}"
 
       # Prepare/update the per-PR preview folder in the Pages branch
@@ -130,7 +142,7 @@ jobs:
           mkdir -p "site/${PREVIEW_DIR}"
 
           # Copy compiled resume + ATS report + HTML template
-          cp "${{ env.ROOT_TEX }}.pdf" "site/${PREVIEW_DIR}/resume.pdf"
+          cp "${{ steps.names.outputs.pdf }}" "site/${PREVIEW_DIR}/resume.pdf"
           cp "ats-pro-report.json" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
           cp "ops/${{ env.PREVIEW_TEMPLATE }}" "site/${PREVIEW_DIR}/index.html"
 

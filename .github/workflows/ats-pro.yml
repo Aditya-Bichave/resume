@@ -53,6 +53,14 @@ jobs:
         uses: xu-cheng/latex-action@v3
         with:
           root_file: ${{ env.ROOT_TEX }}
+      - name: Resolve filenames
+        id: names
+        shell: bash
+        run: |
+          ROOT="${{ env.ROOT_TEX }}"
+          BASE="${ROOT%.tex}"
+          echo "pdf=${BASE}.pdf" >> "$GITHUB_OUTPUT"
+          echo "base=${BASE}" >> "$GITHUB_OUTPUT"
 
       # Auto-detect which Pages branch exists: gh_pages or gh-pages
       - name: Resolve Pages branch name
@@ -103,7 +111,7 @@ jobs:
         continue-on-error: true
         run: |
           python ops/ci/ats-pro/ats_pro.py \
-            --pdf "${{ env.ROOT_TEX }}".pdf \
+            --pdf "${{ steps.names.outputs.pdf }}" \
             --tex "${{ env.ROOT_TEX }}" \
             --jd  "jd/job-description.txt" \
             --role "ops/${{ env.ROLE_FILE }}" \
@@ -111,6 +119,7 @@ jobs:
             --out-md   "${{ env.REPORT_MD }}" \
             --min-score "${{ env.MIN_SCORE }}" \
             --min-req-coverage "${{ env.MIN_REQUIRED_SKILLS_COVERAGE }}"
+
 
       - name: Upload report artifact
         uses: actions/upload-artifact@v4
