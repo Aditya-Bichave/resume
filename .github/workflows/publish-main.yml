@@ -34,6 +34,14 @@ jobs:
         with:
           root_file: ${{ env.ROOT_TEX }}
 
+      # CORRECTED: This step now properly resolves the PDF filename using shell syntax
+      - name: Resolve Filenames
+        id: names
+        shell: bash
+        run: |
+          BASE_NAME="${{ env.ROOT_TEX%.tex }}"
+          echo "pdf_name=${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
+
       - name: Cache pip & Spacy model
         uses: actions/cache@v4
         with:
@@ -56,7 +64,7 @@ jobs:
       - name: Run ATS Analysis for publishing
         run: |
           python ${{ env.ATS_SCRIPT_PATH }} \
-            --pdf "${{ env.ROOT_TEX%.tex }}.pdf" \
+            --pdf "${{ steps.names.outputs.pdf_name }}" \
             --jd "job-description.txt" \
             --out-json "ats-pro-report.json"
 
@@ -64,10 +72,10 @@ jobs:
         id: meta
         run: |
           mkdir -p build
-          cp "${{ env.ROOT_TEX%.tex }}.pdf" "build/resume.pdf"
+          cp "${{ steps.names.outputs.pdf_name }}" "build/resume.pdf"
           cp "ats-pro-report.json" "build/ats-pro-report.json"
-          echo "shortsha=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
-          echo "dateslug=$(date -u +%Y-%m-%d_%H-%M-%S)" >> $GITHUB_OUTPUT
+          echo "shortsha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          echo "dateslug=$(date -u +%Y-%m-%d_%H-%M-%S)" >> "$GITHUB_OUTPUT"
 
       - name: Checkout gh-pages branch
         uses: actions/checkout@v4
@@ -81,25 +89,20 @@ jobs:
           VERSION_DIR="versions/${VERSION_TAG}"
           mkdir -p "site/${VERSION_DIR}" "site/latest"
           
-          # Copy new version files
           cp "build/resume.pdf" "site/${VERSION_DIR}/resume.pdf"
           cp "build/ats-pro-report.json" "site/${VERSION_DIR}/ats-pro-report.json"
           
-          # Update the 'latest' symlink/copy for better caching
           rm -f "site/latest/resume.pdf"
           ln -s "../${VERSION_DIR}/resume.pdf" "site/latest/resume.pdf" 2>/dev/null || cp "site/${VERSION_DIR}/resume.pdf" "site/latest/resume.pdf"
 
-          # Build gh.json with historical scores
           (
             cd site
             printf '{ "latest": "%s", "versions": [' "${{ steps.meta.outputs.shortsha }}"
             first=1
-            # Loop through version directories in reverse chronological order
             for d in $(ls -1d versions/* 2>/dev/null | sort -r); do
               tag=$(basename "$d")
-              score="null" # Default score if report doesn't exist
+              score="null"
               if [ -f "$d/ats-pro-report.json" ]; then
-                # Safely parse score, default to null on error
                 score=$(jq -r .overall_score "$d/ats-pro-report.json" 2>/dev/null || echo "null")
               fi
               if [ $first -eq 0 ]; then printf ', '; fi

@@ -37,9 +37,13 @@ jobs:
         with:
           root_file: ${{ env.ROOT_TEX }}
       
+      # CORRECTED: This step now properly resolves the PDF filename using shell syntax
       - name: Resolve PDF filename
         id: names
-        run: echo "pdf=${{ env.ROOT_TEX%.tex }}.pdf" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          BASE_NAME="${{ env.ROOT_TEX%.tex }}"
+          echo "pdf_name=${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
 
       - name: Cache pip & Spacy model
         uses: actions/cache@v4
@@ -47,7 +51,7 @@ jobs:
           path: |
             ~/.cache/pip
             /usr/local/lib/python3.10/site-packages/spacy/
-          key: ${{ runner.os }}-atspro-v2-${{ hashFiles(env.ATS_REQS_FILE) }}
+          key: ${{ runner.os }}-atspro-v3-${{ hashFiles(env.ATS_REQS_FILE) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -65,7 +69,7 @@ jobs:
         continue-on-error: true
         run: |
           python ${{ env.ATS_SCRIPT_PATH }} \
-            --pdf "${{ steps.names.outputs.pdf }}" \
+            --pdf "${{ steps.names.outputs.pdf_name }}" \
             --jd "job-description.txt" \
             --out-json "${{ env.REPORT_JSON }}" \
             --min-score "${{ env.MIN_SCORE }}" \

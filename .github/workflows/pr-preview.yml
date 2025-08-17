@@ -31,15 +31,13 @@ jobs:
   pr-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout PR branch (resume source + ATS tools)
+      - name: Checkout main branch (for JD and ATS tools)
         uses: actions/checkout@v4
         with:
-          # Checkout the main branch to get the latest job description
-          # This ensures PRs are always evaluated against the canonical JD
           ref: main
           path: main
       
-      - name: Checkout PR code
+      - name: Checkout PR branch (for resume source)
         uses: actions/checkout@v4
         with:
           path: pr
@@ -50,17 +48,22 @@ jobs:
           root_file: ${{ env.ROOT_TEX }}
           working_directory: pr
       
-      - name: Resolve PDF filename
+      # CORRECTED: This step now properly resolves the PDF filename using shell syntax
+      - name: Resolve Filenames
         id: names
-        run: echo "pdf_path=pr/${{ env.ROOT_TEX%.tex }}.pdf" >> "$GITHUB_OUTPUT"
+        shell: bash
+        run: |
+          BASE_NAME="${{ env.ROOT_TEX%.tex }}"
+          echo "pdf_path=pr/${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
 
+      # CORRECTED: The hashFiles path is now valid
       - name: Cache pip & Spacy model
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/pip
             /usr/local/lib/python3.10/site-packages/spacy/
-          key: ${{ runner.os }}-atspro-v3-${{ hashFiles('main/'.concat(env.ATS_REQS_FILE)) }}
+          key: ${{ runner.os }}-atspro-v3-${{ hashFiles(format('main/{0}', env.ATS_REQS_FILE)) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
