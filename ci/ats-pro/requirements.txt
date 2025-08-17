@@ -1,0 +1,10 @@
+pdfminer.six
+pdfplumber
+rapidfuzz
+textstat
+python-dateutil
+dateparser
+scikit-learn
+nltk
+sentence-transformers
+pyspellchecker

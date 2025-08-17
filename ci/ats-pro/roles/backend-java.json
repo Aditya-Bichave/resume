@@ -1,0 +1,11 @@
+{
+  "role_name": "Backend Engineer (Java)",
+  "job_description": "We need a backend engineer with strong Java, Spring Boot, distributed systems, SQL performance tuning, Docker/K8s, AWS, and production incident handling. Nice to have: Kafka, Redis, gRPC.",
+  "required_skills": ["java", "spring boot", "microservices", "sql", "docker", "kubernetes", "aws"],
+  "nice_to_have_skills": ["kafka", "redis", "grpc", "terraform", "prometheus"],
+  "min_years_experience_total": 3,
+  "per_skill_years": { "java": 2, "spring boot": 1 },
+  "location": "india",
+  "work_authorization": "",
+  "degree": ""
+}
