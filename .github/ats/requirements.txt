@@ -9,6 +9,7 @@ language-tool-python>=2.7.3
 
 # NLP (optional)
 spacy>=3.7.2
+en-core-web-sm==3.7.1
 # If you want NER for company detection:
 # python -m spacy download en_core_web_sm
 

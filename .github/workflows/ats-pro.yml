@@ -78,7 +78,6 @@ jobs:
           fi
           echo "Using requirements at: $REQS"
           pip install -r "$REQS"
-          python -m spacy download en_core_web_sm
 
       - name: Run ATS Pro analysis (non-blocking)
         id: ats
@@ -90,19 +89,21 @@ jobs:
           if [ ! -f "$ATS" ]; then
             ATS="main/${{ env.ATS_SCRIPT_PATH }}"
           fi
-          if [ ! -f "ATS_TAXONOMY_PATH" ]; then
+          ATS_TAXONOMY_PATH="pr/${{ env.ATS_TAXONOMY_PATH }}"
+          if [ ! -f "$ATS_TAXONOMY_PATH" ]; then
             ATS_TAXONOMY_PATH="main/${{ env.ATS_TAXONOMY_PATH }}"
           fi
-          JD="jd/job-description.txt"
+          JD="pr/jd/job-description.txt"
           if [ ! -f "$JD" ]; then
             JD="main/jd/job-description.txt"
           fi
           echo "Using ATS script: $ATS"
           echo "Using JD file:    $JD"
+          echo "Using taxonomy:   $ATS_TAXONOMY_PATH"
           python "$ATS" \
             --pdf "pr/${{ steps.names.outputs.pdf_name }}" \
             --jd "$JD" \
-            --taxonomy "ATS_TAXONOMY_PATH"
+            --taxonomy "$ATS_TAXONOMY_PATH"
             --out-json "${{ env.REPORT_JSON }}" \
             --out-md   "${{ env.REPORT_MD }}" \
             --out-html "${{ env.REPORT_HTML }}" \
