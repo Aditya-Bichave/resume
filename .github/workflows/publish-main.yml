@@ -70,7 +70,7 @@ jobs:
           fi
 
           # JD at repo root; fallback optional if you also keep a copy elsewhere
-          JD="job-description.txt"
+          JD="jd/job-description.txt"
           if [ ! -f "$JD" ]; then
             echo "job-description.txt not found at repo root" >&2
             exit 1
