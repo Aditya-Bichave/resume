@@ -134,10 +134,10 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git pull --rebase origin ${{ env.SITE_BRANCH }}
-          git add -A
-          git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
-          git push origin ${{ env.SITE_BRANCH }}
+            git pull --rebase --autostash origin ${{ env.SITE_BRANCH }}
+            git add -A
+            git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+            git push origin ${{ env.SITE_BRANCH }}
 
       - name: Find prior preview comment
         id: find-comment
