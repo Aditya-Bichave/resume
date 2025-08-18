@@ -1,0 +1,153 @@
+{
+  "version": "2.1.0",
+  "role_name": "unspecified",
+  "overall_score": 51,
+  "component_scores": {
+    "hard_keywords": 75,
+    "soft_keywords": 100,
+    "semantic": 0,
+    "experience_total": 0,
+    "per_skill_years": 100,
+    "recency": 100,
+    "methodologies": 100,
+    "domain": 100,
+    "breadth_depth": 0,
+    "impact": 75,
+    "placement": 0,
+    "quality": 44,
+    "seniority": 75,
+    "role_scope": 100,
+    "stability": 0,
+    "compliance": 100,
+    "formatting_penalty_pct": 7.0
+  },
+  "gates": {
+    "required_skills_coverage_ok": true,
+    "per_skill_years_ok": true,
+    "total_years_ok": false,
+    "location_ok": true,
+    "work_auth_ok": true,
+    "degree_ok": true,
+    "seniority_ok": true,
+    "contact_ok": true,
+    "chronology_ok": true
+  },
+  "years_total_detected": 0.0,
+  "required_coverage": 1.0,
+  "nice_to_have_coverage": 1.0,
+  "phrase_coverage": 0.013,
+  "min_req_coverage": 0.85,
+  "missing_required_skills": [],
+  "per_skill_years_required": {},
+  "per_skill_years_estimated": {},
+  "per_skill_last_used_months": {},
+  "sections_present": {
+    "summary": true,
+    "experience": true,
+    "projects": true,
+    "skills": true,
+    "education": true,
+    "certifications": false,
+    "achievements": true,
+    "links": false
+  },
+  "format_flags": {
+    "multi_column_pdf": true
+  },
+  "quality": {
+    "readability": {
+      "flesch_reading_ease": 7.276522572402058,
+      "smog_index": 18.661948016381285,
+      "coleman_liau_index": 19.771720613287908,
+      "avg_sentence_len": 12.4
+    },
+    "grammar_issues": 0
+  },
+  "anti_gaming": {
+    "top_token_ratio": 0.034,
+    "bigram_unique_ratio": 0.9471,
+    "token_entropy": 8.0167,
+    "white_text_ratio": 0.0,
+    "tiny_font_ratio": 0.0
+  },
+  "semantic": {
+    "bi_encoder_score": 0.46201014518737793,
+    "cross_encoder_score": -7.710979461669922,
+    "top_chunks": [
+      [
+        "\u2022 Customers: Supported customer\u2013facing and cross\u2013functional teams in deploying, designing and implementing POC to enhance the product experience.",
+        0.46201014518737793
+      ],
+      [
+        "Used Big Data concepts for more optimized Data Storage, Data ingestion and Data Processing.",
+        0.3220936357975006
+      ],
+      [
+        "Seeking opportunities to leverage experience for positive organizational impact EDUCATION Bachelor of Computer Science, Pune University - 2017 - 2021 Course: Computer Science - CGPA: 9.1/10 Relevant Courses: Algorithms, Data Structures, Object\u2013Oriented software development process, Java, Python, Operating Sys\u2013 tems, Database Management Systems, Distributed Systems, Network Security, Big data SKILLS \u2022 Platforms: Docker, Google Cloud Platform, Amazon Web Services \u2022 Data: Amazon RDS, NoSQL Databases, PostgreSQL, MySQL, Redis, MongoDB, Aerospike, Amazon DynamoDB \u2022 Computer Languages: Python, SQL, Java 8, Java \u2022 Frameworks: Spring Data, Hibernate, Spring Core, JUnit, Spring Security, PyTorch, Mockito, Django, Spring Boot, JUnit 5, Spring MVC \u2022 Web/Application Servers: Web Services \u2022 Solutions: Postman, Amazon S3, AWS CloudFormation, Amazon Elastic File System, Amazon EC2 \u2022 Standards: API & Integration Standards, REST API EXPERIENCE SDE II, EPAM - Jul 2024 - Present Bangalore, Karnataka Senior Software Engineer, Uber - Jul 2021 - Jul 2024 Bangalore, Karnataka \u2022 Reduced latency 60% by migrating critical microservices from TChannel to YARPC.",
+        0.31374767422676086
+      ],
+      [
+        "Spearheaded this initiative by Mentoring and guiding achieving efficient memory usage and scaled performance \u2022 Features: Led development of key features including Real\u2013time Operational capacity estimation, Async Database Writer Service, High Availability, Geo Redundancy, Multi\u2013Cluster Support, and Licensing by Subscriber Count, among others by Leveraging Rest API, Aerospike, and Microservice concepts.",
+        0.3007110059261322
+      ],
+      [
+        "A solutions to help the government body to rectify and find issues.",
+        0.2934437394142151
+      ],
+      [
+        "Effective communicator, able to work independently or collaboratively with stakeholders.",
+        0.2821581959724426
+      ],
+      [
+        "used SQL (vertica) for storage and Redis for Caching for faster data access.",
+        0.26892292499542236
+      ],
+      [
+        "\u2022 Load Balancing: Developed a distributed system for load balancing to scale and increase the product\u2019s processing capability by 25%.",
+        0.2664443850517273
+      ],
+      [
+        "\u2022 Decoupled transport and business logic via Spring Boot, cutting integration time 40%.",
+        0.248379647731781
+      ],
+      [
+        "\u2022 Perf: Optimized existing codebase for 60% performance scalability, leveraging strong analytical skills.",
+        0.20219719409942627
+      ]
+    ]
+  },
+  "contacts": {
+    "emails": [
+      "aditya.bichave@gmail.com"
+    ],
+    "phones": [
+      "+91) 7798497481",
+      "2017\n- 2021"
+    ],
+    "linkedin": true,
+    "github": false,
+    "portfolio": false,
+    "urls": [
+      "https://www.linkedin.com/in/aditya\u2013bichave/"
+    ]
+  },
+  "stability": {
+    "avg_months": 0.0,
+    "short_roles": 1,
+    "promotions": 0
+  },
+  "chronology": {
+    "gaps_over_6m": 0,
+    "overlaps": 0
+  },
+  "education": {
+    "degree": true,
+    "cert_count": 0
+  },
+  "suggestions": [
+    "Mention core JD skills in Summary and Experience, not only in the Skills list."
+  ],
+  "timings_s": {
+    "scoring": 6.633
+  }
+}
