@@ -18,10 +18,9 @@ env:
   ROOT_TEX: resume_faangpath.tex
   SITE_BRANCH: gh-pages
   
-  # --- Tool Configuration ---
+  # --- Tool Configuration (Centralized in main branch) ---
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
-  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json   # <- define this if you use taxonomy
 
 jobs:
   build-and-publish:
@@ -56,51 +55,32 @@ jobs:
       - name: Install ATS dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r "${{ env.ATS_REQS_FILE }}"
+          pip install -r ${{ env.ATS_REQS_FILE }}
           python -m spacy download en_core_web_sm
 
       - name: Run ATS Analysis for publishing
-        shell: bash
         run: |
           set -euo pipefail
-          ATS="${{ env.ATS_SCRIPT_PATH }}"
+          ATS="pr/${{ env.ATS_SCRIPT_PATH }}"
           if [ ! -f "$ATS" ]; then
-            echo "ATS script not found at $ATS" >&2
-            exit 1
+            ATS="main/${{ env.ATS_SCRIPT_PATH }}"
           fi
-
-          # JD at repo root; fallback optional if you also keep a copy elsewhere
-          JD="job-description.txt"
+          if [ ! -f "ATS_TAXONOMY_PATH" ]; then
+            ATS_TAXONOMY_PATH="main/${{ env.ATS_TAXONOMY_PATH }}"
+          fi
+          JD="jd/job-description.txt"
           if [ ! -f "$JD" ]; then
-            echo "job-description.txt not found at repo root" >&2
-            exit 1
+            JD="main/jd/job-description.txt"
           fi
-
-          # Taxonomy (optional)
-          TAX="${{ env.ATS_TAXONOMY_PATH }}"
-          if [ ! -f "$TAX" ]; then
-            echo "Taxonomy not found at $TAX (continuing without taxonomy)"; TAX=""
-          fi
-
           echo "Using ATS script: $ATS"
           echo "Using JD file:    $JD"
-          [ -n "$TAX" ] && echo "Using taxonomy:  $TAX" || true
-
-          PDF="${{ steps.names.outputs.pdf_name }}"
-          if [ ! -f "$PDF" ]; then
-            echo "PDF not found: $PDF" >&2
-            ls -la || true
-            exit 1
-          fi
-
-          # Build args
-          CMD=( python "$ATS" --pdf "$PDF" --jd "$JD" --out-json "ats-pro-report.json" --out-md "ats-pro-report.md" --out-html "ats-pro-report.html" )
-          if [ -n "$TAX" ]; then
-            CMD+=( --taxonomy "$TAX" )
-          fi
-
-          echo "Running: ${CMD[*]}"
-          "${CMD[@]}"
+          python "$ATS" \
+            --pdf "${{ steps.names.outputs.pdf_path }}" \
+            --jd "$JD" \
+            --taxonomy "ATS_TAXONOMY_PATH"
+            --out-json "ats-pro-report.json" \
+            --out-md   "ats-pro-report.md" \
+            --out-html "ats-pro-report.html"
 
       - name: Prep assets for publishing
         id: meta
