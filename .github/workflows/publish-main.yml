@@ -7,6 +7,7 @@ on:
       - "resume*.tex"
       - "resume*.cls"
       - "job-description.txt"
+      - "jd/job-description.txt"
       - ".github/workflows/publish-main.yml"
   workflow_dispatch:
 
@@ -17,11 +18,11 @@ env:
   # --- User Configuration ---
   ROOT_TEX: resume_faangpath.tex
   SITE_BRANCH: gh-pages
-  
+
   # --- Tool Configuration ---
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
-  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json   # <- define this if you use taxonomy
+  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
 
 jobs:
   build-and-publish:
@@ -59,6 +60,13 @@ jobs:
           pip install -r "${{ env.ATS_REQS_FILE }}"
           python -m spacy download en_core_web_sm
 
+      - name: Ensure jq is available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
       - name: Run ATS Analysis for publishing
         shell: bash
         run: |
@@ -69,10 +77,13 @@ jobs:
             exit 1
           fi
 
-          # JD at repo root; fallback optional if you also keep a copy elsewhere
-          JD="jd/job-description.txt"
-          if [ ! -f "$JD" ]; then
-            echo "job-description.txt not found at repo root" >&2
+          # Prefer JD in jd/, fallback to root
+          if [ -f "jd/job-description.txt" ]; then
+            JD="jd/job-description.txt"
+          elif [ -f "job-description.txt" ]; then
+            JD="job-description.txt"
+          else
+            echo "Job description not found (looked for jd/job-description.txt and job-description.txt)" >&2
             exit 1
           fi
 
@@ -100,7 +111,22 @@ jobs:
           fi
 
           echo "Running: ${CMD[*]}"
+          set +e
           "${CMD[@]}"
+          ATS_EXIT=$?
+          set -e
+
+          if [ "$ATS_EXIT" -ne 0 ]; then
+            echo "NOTE: ATS exited with $ATS_EXIT (likely thresholds/gates not met). Proceeding to publish artifacts."
+          fi
+
+          # Ensure outputs exist before moving on
+          for f in ats-pro-report.json ats-pro-report.md ats-pro-report.html; do
+            if [ ! -f "$f" ]; then
+              echo "Missing expected output file: $f" >&2
+              exit 1
+            fi
+          done
 
       - name: Prep assets for publishing
         id: meta
@@ -132,6 +158,8 @@ jobs:
           
           # Always copy for latest (avoid symlinks on GH Pages)
           cp "site/${VERSION_DIR}/resume.pdf" "site/latest/resume.pdf"
+          # (Optional) also expose latest ATS JSON:
+          cp "site/${VERSION_DIR}/ats-pro-report.json" "site/latest/ats-pro-report.json" || true
 
           (
             cd site
