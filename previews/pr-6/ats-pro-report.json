@@ -12,7 +12,7 @@
     "methodologies": 100,
     "domain": 100,
     "breadth_depth": 0,
-    "impact": 75,
+    "impact": 71,
     "placement": 0,
     "quality": 44,
     "seniority": 75,
@@ -56,17 +56,17 @@
   },
   "quality": {
     "readability": {
-      "flesch_reading_ease": 7.276522572402058,
+      "flesch_reading_ease": 6.7591780821918235,
       "smog_index": 18.661948016381285,
-      "coleman_liau_index": 19.771720613287908,
-      "avg_sentence_len": 12.4
+      "coleman_liau_index": 19.875000000000004,
+      "avg_sentence_len": 12.571428571428571
     },
     "grammar_issues": 0
   },
   "anti_gaming": {
     "top_token_ratio": 0.034,
-    "bigram_unique_ratio": 0.9471,
-    "token_entropy": 8.0167,
+    "bigram_unique_ratio": 0.947,
+    "token_entropy": 8.021,
     "white_text_ratio": 0.0,
     "tiny_font_ratio": 0.0
   },
@@ -79,12 +79,12 @@
         0.46201014518737793
       ],
       [
-        "Used Big Data concepts for more optimized Data Storage, Data ingestion and Data Processing.",
-        0.3220936357975006
+        "Seeking opportunities to leverage experience for positive organizational impact EDUCATION Bachelor of Computer Science, Pune University - 2017 - 2021 Course: Computer Science - CGPA: 9.1/10 Relevant Courses: Algorithms, Data Structures, Object\u2013Oriented software development process, Java, Python, Operating Sys\u2013 tems, Database Management Systems, Distributed Systems, Network Security, Big data SKILLS \u2022 Platforms: Docker, Google Cloud Platform, Amazon Web Services \u2022 Data: Amazon RDS, NoSQL Databases, PostgreSQL, MySQL, Redis, MongoDB, Aerospike, Amazon DynamoDB \u2022 Computer Languages: Python, SQL, Java 8, Java \u2022 Frameworks: Spring Data, Hibernate, Spring Core, JUnit, Spring Security, PyTorch, Mockito, Django, Spring Boot, JUnit 5, Spring MVC \u2022 Web/Application Servers: Web Services \u2022 Solutions: Postman, Amazon S3, AWS CloudFormation, Amazon Elastic File System, Amazon EC2 \u2022 Standards: API & Integration Standards, REST API EXPERIENCE SDE II, EPAM - Jul 2024 - Present Bangalore, Karnataka Client - Uber: Senior Software Engineer Bangalore, Karnataka \u2022 Reduced latency 60% by migrating critical microservices from TChannel to YARPC.",
+        0.3239898383617401
       ],
       [
-        "Seeking opportunities to leverage experience for positive organizational impact EDUCATION Bachelor of Computer Science, Pune University - 2017 - 2021 Course: Computer Science - CGPA: 9.1/10 Relevant Courses: Algorithms, Data Structures, Object\u2013Oriented software development process, Java, Python, Operating Sys\u2013 tems, Database Management Systems, Distributed Systems, Network Security, Big data SKILLS \u2022 Platforms: Docker, Google Cloud Platform, Amazon Web Services \u2022 Data: Amazon RDS, NoSQL Databases, PostgreSQL, MySQL, Redis, MongoDB, Aerospike, Amazon DynamoDB \u2022 Computer Languages: Python, SQL, Java 8, Java \u2022 Frameworks: Spring Data, Hibernate, Spring Core, JUnit, Spring Security, PyTorch, Mockito, Django, Spring Boot, JUnit 5, Spring MVC \u2022 Web/Application Servers: Web Services \u2022 Solutions: Postman, Amazon S3, AWS CloudFormation, Amazon Elastic File System, Amazon EC2 \u2022 Standards: API & Integration Standards, REST API EXPERIENCE SDE II, EPAM - Jul 2024 - Present Bangalore, Karnataka Senior Software Engineer, Uber - Jul 2021 - Jul 2024 Bangalore, Karnataka \u2022 Reduced latency 60% by migrating critical microservices from TChannel to YARPC.",
-        0.31374767422676086
+        "Used Big Data concepts for more optimized Data Storage, Data ingestion and Data Processing.",
+        0.3220936357975006
       ],
       [
         "Spearheaded this initiative by Mentoring and guiding achieving efficient memory usage and scaled performance \u2022 Features: Led development of key features including Real\u2013time Operational capacity estimation, Async Database Writer Service, High Availability, Geo Redundancy, Multi\u2013Cluster Support, and Licensing by Subscriber Count, among others by Leveraging Rest API, Aerospike, and Microservice concepts.",
@@ -148,6 +148,6 @@
     "Mention core JD skills in Summary and Experience, not only in the Skills list."
   ],
   "timings_s": {
-    "scoring": 6.633
+    "scoring": 8.928
   }
 }
