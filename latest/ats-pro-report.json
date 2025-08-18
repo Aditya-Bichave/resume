@@ -1,0 +1,199 @@
+{
+  "version": "2.1.0",
+  "role_name": "unspecified",
+  "overall_score": 44,
+  "component_scores": {
+    "hard_keywords": 60,
+    "soft_keywords": 100,
+    "semantic": 0,
+    "experience_total": 0,
+    "per_skill_years": 100,
+    "recency": 21,
+    "methodologies": 100,
+    "domain": 50,
+    "breadth_depth": 0,
+    "impact": 78,
+    "placement": 34,
+    "quality": 44,
+    "seniority": 100,
+    "role_scope": 100,
+    "stability": 0,
+    "compliance": 100,
+    "formatting_penalty_pct": 7.0
+  },
+  "gates": {
+    "required_skills_coverage_ok": false,
+    "per_skill_years_ok": true,
+    "total_years_ok": false,
+    "location_ok": true,
+    "work_auth_ok": true,
+    "degree_ok": true,
+    "seniority_ok": true,
+    "contact_ok": true,
+    "chronology_ok": true
+  },
+  "years_total_detected": 0.0,
+  "required_coverage": 0.842,
+  "nice_to_have_coverage": 0.667,
+  "phrase_coverage": 0.013,
+  "min_req_coverage": 0.85,
+  "missing_required_skills": [
+    "cassandra",
+    "graphql",
+    "oauth2"
+  ],
+  "per_skill_years_required": {},
+  "per_skill_years_estimated": {
+    "aws": 0.0,
+    "azure": 0.0,
+    "cassandra": 0.0,
+    "docker": 0.0,
+    "gcp": 0.0,
+    "graphql": 0.0,
+    "java": 0.0,
+    "javascript": 0.0,
+    "jwt": 0.0,
+    "kafka": 0.0,
+    "kubernetes": 0.0,
+    "mongodb": 0.0,
+    "mysql": 0.0,
+    "oauth2": 0.0,
+    "postgresql": 0.0,
+    "rest": 0.0,
+    "spring boot": 0.0,
+    "spring cloud": 0.0,
+    "sql": 0.0
+  },
+  "per_skill_last_used_months": {
+    "aws": null,
+    "azure": 0,
+    "cassandra": null,
+    "docker": null,
+    "gcp": 0,
+    "graphql": null,
+    "java": 0,
+    "javascript": null,
+    "jwt": null,
+    "kafka": null,
+    "kubernetes": null,
+    "mongodb": null,
+    "mysql": null,
+    "oauth2": null,
+    "postgresql": 0,
+    "rest": null,
+    "spring boot": null,
+    "spring cloud": null,
+    "sql": null
+  },
+  "sections_present": {
+    "summary": true,
+    "experience": true,
+    "projects": true,
+    "skills": true,
+    "education": true,
+    "certifications": false,
+    "achievements": true,
+    "links": false
+  },
+  "format_flags": {
+    "multi_column_pdf": true
+  },
+  "quality": {
+    "readability": {
+      "flesch_reading_ease": 5.854407237936812,
+      "smog_index": 18.922397154172714,
+      "coleman_liau_index": 19.985357737104824,
+      "avg_sentence_len": 17.22222222222222
+    },
+    "grammar_issues": 0
+  },
+  "anti_gaming": {
+    "top_token_ratio": 0.0347,
+    "bigram_unique_ratio": 0.9506,
+    "token_entropy": 8.0601,
+    "white_text_ratio": 0.0,
+    "tiny_font_ratio": 0.0
+  },
+  "semantic": {
+    "bi_encoder_score": 0.46201014518737793,
+    "cross_encoder_score": -7.710979461669922,
+    "top_chunks": [
+      [
+        "\u2022 Customers: Supported customer\u2013facing and cross\u2013functional teams in deploying, designing and implementing POC to enhance the product experience.",
+        0.46201014518737793
+      ],
+      [
+        "Used Big Data concepts for more optimized Data Storage, Data ingestion and Data Processing.",
+        0.3220936357975006
+      ],
+      [
+        "Spearheaded this initiative by Mentoring and guiding achieving efficient memory usage and scaled performance \u2022 Features: Led development of key features including Real\u2013time Operational capacity estimation, Async Database Writer Service, High Availability, Geo Redundancy, Multi\u2013Cluster Support, and Licensing by Subscriber Count, among others by Leveraging Rest API, Aerospike, and Microservice concepts.",
+        0.3007110059261322
+      ],
+      [
+        "A solutions to help the government body to rectify and find issues.",
+        0.2934437394142151
+      ],
+      [
+        "Seeking opportunities to leverage experience for positive organizational impact EDUCATION Bachelor of Computer Science, Pune University 2017 - 2021 Course: Computer Science CGPA: 9.1/10 Relevant Courses: Algorithms, Data Structures, Object\u2013Oriented software development process, Java, Python, Operating Sys\u2013 tems, Database Management Systems, Distributed Systems, Network Security, Big data SKILLS Platforms Docker, Google Cloud Platform, Amazon Web Services Data Amazon RDS, NoSQL Databases, PostgreSQL, MySQL, Redis, MongoDB, Aerospike, Amazon DynamoDB Computer Languages Python, SQL, Java 8, Java Frameworks Spring Data, Hibernate, Spring Core, JUnit, Spring Security, PyTorch, Mockito, Django, Spring Boot, JUnit 5, Spring MVC Web/Application Servers Web Services Solutions Postman, Amazon S3, AWS CloudFormation, Amazon Elastic File System, Amazon EC2 Standards API & Integration Standards, REST API EXPERIENCE SDE II, EPAM Jul 2024 - Present Senior Software Engineer, Uber to Jul 2025 Bangalore, Karnataka \u2022 Executed end\u2013to\u2013end migration of critical microservices from legacy TChannel transport to the scalable YARPC framework.",
+        0.28588736057281494
+      ],
+      [
+        "Effective communicator, able to work independently or collaboratively with stakeholders.",
+        0.2821581959724426
+      ],
+      [
+        "used SQL (vertica) for storage and Redis for Caching for faster data access.",
+        0.26892292499542236
+      ],
+      [
+        "\u2022 Load Balancing: Developed a distributed system for load balancing to scale and increase the product\u2019s processing capability by 25%.",
+        0.2664443850517273
+      ],
+      [
+        "\u2022 Integrated YARPC services with Spring Boot to separate transport and business logic through modular layers.",
+        0.25966623425483704
+      ],
+      [
+        "\u2022 Perf: Optimized existing codebase for 60% performance scalability, leveraging strong analytical skills.",
+        0.20219719409942627
+      ]
+    ]
+  },
+  "contacts": {
+    "emails": [
+      "aditya.bichave@gmail.com"
+    ],
+    "phones": [
+      "2017\n- 2021",
+      "+91) 7798497481"
+    ],
+    "linkedin": true,
+    "github": false,
+    "portfolio": false,
+    "urls": [
+      "https://www.linkedin.com/in/aditya\u2013bichave/"
+    ]
+  },
+  "stability": {
+    "avg_months": 0.0,
+    "short_roles": 1,
+    "promotions": 0
+  },
+  "chronology": {
+    "gaps_over_6m": 0,
+    "overlaps": 0
+  },
+  "education": {
+    "degree": true,
+    "cert_count": 0
+  },
+  "suggestions": [
+    "Add concrete evidence for missing hard skills: cassandra, graphql, oauth2.",
+    "Surface recent projects using the required stack (last 12\u201324 months) near the top.",
+    "Mention core JD skills in Summary and Experience, not only in the Skills list."
+  ],
+  "timings_s": {
+    "scoring": 6.888
+  }
+}
