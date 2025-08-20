@@ -2,27 +2,39 @@ name: ATS Pro (Strict)
 
 on:
   workflow_run:
+    workflows: ["PR Preview (PDF only)"]  # must match the preview workflow's name exactly
     types: [completed]
 
 permissions:
-  actions: read
+  actions: read          # needed to download artifacts from workflow_run
   contents: read
-  pull-requests: write
-  statuses: write
+  pull-requests: write   # post PR comment
+  statuses: write        # Status API bridge (visual check on PR)
+
+env:
+  REPORT_JSON: ats-pro-report.json
+  REPORT_MD: ats-pro-report.md
+  REPORT_HTML: ats-pro-report.html
+  ATS_SCRIPT_PATH: .github/ats/ats_pro.py
+  ATS_REQS_FILE: .github/ats/requirements.txt
+  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
+  MIN_SCORE: "78"
+  MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
+
+concurrency:
+  group: ats-pro-${{ github.event.workflow_run.id }}
+  cancel-in-progress: true
 
 jobs:
   ats-pro:
     if: >
-      github.event.workflow_run.name == 'PR Preview (PDF only)' &&
       github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Debug: list artifacts from the triggering run
+      # --- Get artifacts from the triggering PR Preview run ---
       - name: List artifacts on triggering run (debug)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -33,30 +45,102 @@ jobs:
           echo "Artifacts on run ${RUN_ID}:"
           gh api "/repos/${OWNER_REPO}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[].name'
 
-      # Download all artifacts from the PR Preview workflow run
       - name: Download all artifacts from preview run
         uses: actions/download-artifact@v4
         with:
           run-id: ${{ github.event.workflow_run.id }}
           path: ./artifacts
 
+      # --- Pull repo content we may need (tools from main, overrides from PR) ---
+      - name: Checkout main (tools/JD fallback)
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          path: main
+
+      - name: Checkout PR branch (for ATS overrides)
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_branch }}
+          path: pr
+
+      # --- Tooling setup ---
+      - name: Ensure jq is available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      - name: Resolve ATS requirements path (for cache key)
+        id: reqs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ -f "pr/${{ env.ATS_REQS_FILE }}" ]; then
+            echo "path=pr/${{ env.ATS_REQS_FILE }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=main/${{ env.ATS_REQS_FILE }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-atspro-${{ hashFiles(steps.reqs.outputs.path) }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: '3.10'
 
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r "main/.github/ats/requirements.txt"
-          python -m spacy download en_core_web_sm
-
-      - name: Resolve tool paths & inputs
-        id: inputs
+      - name: Install ATS dependencies
         run: |
           set -euo pipefail
+          python -m pip install --upgrade pip
+          pip install -r "${{ steps.reqs.outputs.path }}"
+          python -m spacy download en_core_web_sm || true
 
-          # Look for any PDF in the downloaded artifacts
+      # --- Status API bridge: pending ---
+      - name: Set commit status-pending (ATS Pro)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER_REPO="${{ github.repository }}"
+          TARGET_URL="${{ github.server_url }}/${OWNER_REPO}/actions/runs/${{ github.run_id }}"
+          gh api -X POST "/repos/${OWNER_REPO}/statuses/${SHA}" \
+            -f state="pending" \
+            -f context="ATS Pro (Strict)" \
+            -f description="Running ATS analysis…" \
+            -f target_url="${TARGET_URL}"
+
+      # --- Validate / resolve inputs ---
+      - name: Validate taxonomy JSON (optional)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for p in "pr/${{ env.ATS_TAXONOMY_PATH }}" "main/${{ env.ATS_TAXONOMY_PATH }}"; do
+            if [ -f "$p" ]; then jq empty "$p"; break; fi
+          done
+
+      - name: Validate JD (non-empty)
+        run: |
+          set -euo pipefail
+          test -s "pr/jd/job-description.txt" || test -s "main/jd/job-description.txt" || { echo "JD is missing/empty"; exit 1; }
+
+      - name: Resolve tool paths & inputs
+        id: paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          pick() { local p1="pr/$1"; local p2="main/$1"; [[ -f "$p1" ]] && echo "$p1" || echo "$p2"; }
+          ATS_SCRIPT="$(pick "${{ env.ATS_SCRIPT_PATH }}")"
+          ATS_TAXO="$(pick "${{ env.ATS_TAXONOMY_PATH }}")"
+          JD_FILE="pr/jd/job-description.txt"; [[ -f "$JD_FILE" ]] || JD_FILE="main/jd/job-description.txt"
+
+          # Auto-find any PDF under artifacts/**
           PDF_PATH="$(ls -1 artifacts/**/*.pdf 2>/dev/null | head -n1 || true)"
           if [ -z "${PDF_PATH:-}" ]; then
             echo "No PDF found under artifacts/. Contents:"
@@ -64,76 +148,172 @@ jobs:
             exit 1
           fi
 
-          echo "Using resume PDF: $PDF_PATH"
+          echo "ats_script=$ATS_SCRIPT"       >> "$GITHUB_OUTPUT"
+          echo "ats_taxonomy=$ATS_TAXO"       >> "$GITHUB_OUTPUT"
+          echo "jd_file=$JD_FILE"             >> "$GITHUB_OUTPUT"
+          echo "pdf_path=$PDF_PATH"           >> "$GITHUB_OUTPUT"
 
-          echo "pdf=$PDF_PATH" >> "$GITHUB_OUTPUT"
-          echo "jd=jd/job-description.txt" >> "$GITHUB_OUTPUT"
-          echo "taxonomy=.github/ats/taxonomy.json" >> "$GITHUB_OUTPUT"
-          echo "report=ats-pro-report.json" >> "$GITHUB_OUTPUT"
+          echo "Using:"
+          echo "  PDF:        $PDF_PATH"
+          echo "  ATS script: $ATS_SCRIPT"
+          echo "  Taxonomy:   $ATS_TAXO"
+          echo "  JD file:    $JD_FILE"
 
-      - name: Run ATS Pro scoring
+      # --- Resolve PR number from head_sha ---
+      - name: Resolve PR number from head_sha (robust)
+        id: prnum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          python .github/ats/ats_pro.py \
-            --resume "${{ steps.inputs.outputs.pdf }}" \
-            --jd "${{ steps.inputs.outputs.jd }}" \
-            --taxonomy "${{ steps.inputs.outputs.taxonomy }}" \
-            --out "${{ steps.inputs.outputs.report }}"
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER_REPO="${{ github.repository }}"
+          PR_NUM=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${OWNER_REPO}/commits/${SHA}/pulls \
+            --jq '.[0].number')
+          if [ -z "${PR_NUM:-}" ] || [ "${PR_NUM}" = "null" ]; then
+            echo "No PR found for head_sha=${SHA} in ${OWNER_REPO}" >&2
+            exit 1
+          fi
+          echo "number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+          echo "Resolved PR #${PR_NUM} from head_sha=${SHA}"
 
-      - name: Upload ATS report
+      - name: Derive MIN_SCORE from labels
+        id: gates
+        if: steps.prnum.outputs.number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PR=${{ steps.prnum.outputs.number }}
+          OWNER_REPO="${{ github.repository }}"
+          LABELS=$(gh api /repos/${OWNER_REPO}/issues/${PR}/labels --jq '.[].name' | tr '[:upper:]' '[:lower:]' || true)
+          if echo "$LABELS" | grep -q '^ats:strict$'; then
+            echo "min_score=85" >> "$GITHUB_OUTPUT"
+          else
+            echo "min_score=${{ env.MIN_SCORE }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      # --- ATS run ---
+      - name: Run ATS Pro analysis (non-blocking)
+        id: ats
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          MIN="${{ steps.gates.outputs.min_score && steps.gates.outputs.min_score || env.MIN_SCORE }}"
+          python "${{ steps.paths.outputs.ats_script }}" \
+            --pdf "${{ steps.paths.outputs.pdf_path }}" \
+            --jd "${{ steps.paths.outputs.jd_file }}" \
+            --taxonomy "${{ steps.paths.outputs.ats_taxonomy }}" \
+            --out-json "${{ env.REPORT_JSON }}" \
+            --out-md   "${{ env.REPORT_MD }}" \
+            --out-html "${{ env.REPORT_HTML }}" \
+            --min-score "${MIN}" \
+            --min-req-coverage "${{ env.MIN_REQUIRED_SKILLS_COVERAGE }}"
+
+      - name: Upload report artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ats-pro-report
-          path: ${{ steps.inputs.outputs.report }}
+          name: ats-pro-report-strict
+          path: |
+            ${{ env.REPORT_JSON }}
+            ${{ env.REPORT_MD }}
+            ${{ env.REPORT_HTML }}
+          retention-days: 7
 
-      - name: Map head SHA → PR number
-        id: find_pr
+      # --- Build ATS comment (success path only if JSON exists) ---
+      - name: Build ATS Nova (Strict) comment
+        id: parser
+        if: steps.ats.outcome == 'success'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SCORE=$(jq -r '.overall_score // "n/a"' "${{ env.REPORT_JSON }}")
+          GATES_PASSED=$(jq -r 'if (.gates | all) then "✅ All Passed" else "❌ Some Failed" end' "${{ env.REPORT_JSON }}")
+          SUGGESTIONS=$(jq -r '(.suggestions // []) | .[:6] | map("- " + .) | join("\n")' "${{ env.REPORT_JSON }}")
+          if [ -z "$SUGGESTIONS" ]; then SUGGESTIONS="- ✅ Looks good!"; fi
+
+          {
+            echo 'body<<EOF'
+            echo "## ⚡ ATS Nova (Strict Gate)"
+            echo ""
+            echo "| Score | Gates Status |"
+            echo "|:-----:|:------------:|"
+            echo "| **$SCORE / 100** | **$GATES_PASSED** |"
+            echo ""
+            echo "### Suggestions"
+            echo "$SUGGESTIONS"
+            echo ""
+            echo "<sub>Posted by <b>ATS Nova</b> 🤖</sub>"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Find prior ATS Nova comment
+        id: find-comment
+        if: steps.parser.outputs.body && steps.prnum.outputs.number
+        uses: peter-evans/find-comment@v3
+        with:
+          issue-number: ${{ steps.prnum.outputs.number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: 'ATS Nova (Strict Gate)'
+
+      - name: Create or update PR comment (ATS Nova)
+        if: steps.parser.outputs.body && steps.prnum.outputs.number
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find-comment.outputs.comment-id }}
+          issue-number: ${{ steps.prnum.outputs.number }}
+          body: ${{ steps.parser.outputs.body }}
+          edit-mode: replace
+
+      - name: Summarize ATS results in job
+        if: steps.ats.outcome == 'success'
+        run: |
+          {
+            echo "## ATS Pro Summary"
+            echo ""
+            echo "- Score: $(jq -r '.overall_score' ats-pro-report.json)/100"
+            echo "- Gates: $(jq -r 'if (.gates | all) then "All Passed" else "Some Failed" end' ats-pro-report.json)"
+          } >> $GITHUB_STEP_SUMMARY
+
+      # --- Status API bridge: success/failure ---
+      - name: Set commit status-success (ATS Pro)
+        if: steps.ats.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           SHA="${{ github.event.workflow_run.head_sha }}"
-          PR_NUMBER="$(gh api /repos/${{ github.repository }}/commits/$SHA/pulls --jq '.[0].number' || true)"
-          if [ -z "$PR_NUMBER" ] || [ "$PR_NUMBER" = "null" ]; then
-            echo "Could not map commit $SHA to a PR." >&2
-            exit 1
-          fi
-          echo "pr=$PR_NUMBER" >> "$GITHUB_OUTPUT"
-
-      - name: Post or update PR comment with ATS results
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          REPORT="${{ steps.inputs.outputs.report }}"
-          PR_NUMBER="${{ steps.find_pr.outputs.pr }}"
-
-          if [ ! -f "$REPORT" ]; then
-            echo "ATS report not found: $REPORT"
-            exit 1
-          fi
-
-          BODY="$(cat "$REPORT")"
-
-          # Try to find existing ATS comment
-          COMMENT_ID="$(gh api repos/${{ github.repository }}/issues/$PR_NUMBER/comments \
-            --jq '.[] | select(.user.login=="github-actions[bot]") | select(.body|startswith("## ATS Nova Report")) | .id' || true)"
-
-          if [ -n "$COMMENT_ID" ]; then
-            echo "Updating existing ATS comment ($COMMENT_ID)..."
-            gh api repos/${{ github.repository }}/issues/comments/$COMMENT_ID \
-              -X PATCH -f body="## ATS Nova Report\n\n$BODY"
-          else
-            echo "Creating new ATS comment..."
-            gh pr comment "$PR_NUMBER" --body "## ATS Nova Report\n\n$BODY"
-          fi
-
-      - name: Report status back to PR (status API bridge)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          SHA="${{ github.event.workflow_run.head_sha }}"
-          gh api repos/${{ github.repository }}/statuses/$SHA \
-            -f state=success \
+          OWNER_REPO="${{ github.repository }}"
+          TARGET_URL="${{ github.server_url }}/${OWNER_REPO}/actions/runs/${{ github.run_id }}"
+          SCORE=$(jq -r '.overall_score // "n/a"' "${{ env.REPORT_JSON }}" 2>/dev/null || echo "n/a")
+          DESC="ATS passed (score: ${SCORE})"
+          gh api -X POST "/repos/${OWNER_REPO}/statuses/${SHA}" \
+            -f state="success" \
             -f context="ATS Pro (Strict)" \
-            -f description="ATS scoring completed"
+            -f description="${DESC:0:140}" \
+            -f target_url="${TARGET_URL}"
+
+      - name: Set commit status-failure (ATS Pro)
+        if: steps.ats.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER_REPO="${{ github.repository }}"
+          TARGET_URL="${{ github.server_url }}/${OWNER_REPO}/actions/runs/${{ github.run_id }}"
+          gh api -X POST "/repos/${OWNER_REPO}/statuses/${SHA}" \
+            -f state="failure" \
+            -f context="ATS Pro (Strict)" \
+            -f description="ATS failed gates or crashed" \
+            -f target_url="${TARGET_URL}"
+
+      - name: Fail the job if analysis failed
+        if: steps.ats.outcome == 'failure'
+        run: |
+          echo "ATS Pro gate/score failed. See PR comment and artifact for details."
+          exit 1
