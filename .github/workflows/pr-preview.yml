@@ -14,12 +14,9 @@ permissions:
   pull-requests: write
 
 env:
-  # --- User Configuration ---
   ROOT_TEX: resume_faangpath.tex
   SITE_BRANCH: gh-pages
   PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH: ci/preview-template.html
-
-  # --- Tool Configuration (Centralized in main branch) ---
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
   ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
@@ -32,13 +29,13 @@ jobs:
   pr-preview:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout main branch (for JD and ATS tools)
+      - name: Checkout main (tools/JD)
         uses: actions/checkout@v4
         with:
           ref: main
           path: main
 
-      - name: Checkout PR branch (for resume source)
+      - name: Checkout PR (resume source + possible ATS overrides)
         uses: actions/checkout@v4
         with:
           path: pr
@@ -49,12 +46,35 @@ jobs:
           root_file: ${{ env.ROOT_TEX }}
           working_directory: pr
 
-      - name: Resolve Filenames
-        id: names
+      - name: Resolve paths & names
+        id: paths
         shell: bash
         run: |
+          set -euo pipefail
           BASE_NAME="${ROOT_TEX%.tex}"
           echo "pdf_path=pr/${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
+
+          # prefer PR, fallback to main
+          pick() { local p1="pr/$1"; local p2="main/$1"; [[ -f "$p1" ]] && echo "$p1" || echo "$p2"; }
+
+          ATS_SCRIPT="$(pick "${{ env.ATS_SCRIPT_PATH }}")"
+          ATS_REQS="$(pick "${{ env.ATS_REQS_FILE }}")"
+          ATS_TAXO="$(pick "${{ env.ATS_TAXONOMY_PATH }}")"
+
+          JD_FILE="jd/job-description.txt"
+          [[ -f "$JD_FILE" ]] || JD_FILE="main/jd/job-description.txt"
+
+          echo "ats_script=$ATS_SCRIPT" >> "$GITHUB_OUTPUT"
+          echo "ats_requirements=$ATS_REQS" >> "$GITHUB_OUTPUT"
+          echo "ats_taxonomy=$ATS_TAXO" >> "$GITHUB_OUTPUT"
+          echo "jd_file=$JD_FILE" >> "$GITHUB_OUTPUT"
+
+          echo "Using:"
+          echo "  PDF:         pr/${BASE_NAME}.pdf"
+          echo "  ATS script:  $ATS_SCRIPT"
+          echo "  ATS reqs:    $ATS_REQS"
+          echo "  Taxonomy:    $ATS_TAXO"
+          echo "  JD file:     $JD_FILE"
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -72,72 +92,63 @@ jobs:
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          REQS="pr/${{ env.ATS_REQS_FILE }}"
-          if [ ! -f "$REQS" ]; then
-            REQS="main/${{ env.ATS_REQS_FILE }}"
-          fi
-          echo "Using requirements at: $REQS"
-          pip install -r "$REQS"
+          echo "Using requirements at: ${{ steps.paths.outputs.ats_requirements }}"
+          pip install -r "${{ steps.paths.outputs.ats_requirements }}"
+          python -m spacy download en_core_web_sm
 
       - name: Run ATS analysis (non-blocking)
         continue-on-error: true
         shell: bash
         run: |
           set -euo pipefail
-          ATS="pr/${{ env.ATS_SCRIPT_PATH }}"
-          if [ ! -f "$ATS" ]; then
-            ATS="main/${{ env.ATS_SCRIPT_PATH }}"
-          fi
-          ATS_TAXONOMY_PATH="pr/${{ env.ATS_TAXONOMY_PATH }}"
-          if [ ! -f "$ATS_TAXONOMY_PATH" ]; then
-            ATS_TAXONOMY_PATH="main/${{ env.ATS_TAXONOMY_PATH }}"
-          fi
-          JD="pr/jd/job-description.txt"
-          if [ ! -f "$JD" ]; then
-            JD="main/jd/job-description.txt"
-          fi
-          echo "Using ATS script: $ATS"
-          echo "Using JD file:    $JD"
-          echo "Using taxonomy:   $ATS_TAXONOMY_PATH"
-          python "$ATS" \
-            --pdf "${{ steps.names.outputs.pdf_path }}" \
-            --jd "$JD" \
-            --taxonomy "$ATS_TAXONOMY_PATH"
+          python "${{ steps.paths.outputs.ats_script }}" \
+            --pdf "${{ steps.paths.outputs.pdf_path }}" \
+            --jd "${{ steps.paths.outputs.jd_file }}" \
+            --taxonomy "${{ steps.paths.outputs.ats_taxonomy }}" \
             --out-json "ats-pro-report.json" \
             --out-md   "ats-pro-report.md" \
             --out-html "ats-pro-report.html" \
             --min-score 75
 
-      - name: Checkout Pages branch to publish preview
+      - name: Checkout Pages branch
         uses: actions/checkout@v4
         with:
           ref: ${{ env.SITE_BRANCH }}
           path: site
+          fetch-depth: 0
 
-      - name: Copy files into preview folder
+      - name: Copy to preview folder (+ cache-bust)
         id: prep
         shell: bash
         run: |
           set -euo pipefail
           PREVIEW_DIR="previews/pr-${{ github.event.pull_request.number }}"
           mkdir -p "site/${PREVIEW_DIR}"
-          cp "${{ steps.names.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
+          cp "${{ steps.paths.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
           cp "ats-pro-report.json" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
           cp "ats-pro-report.md"   "site/${PREVIEW_DIR}/ats-pro-report.md"   || true
           cp "ats-pro-report.html" "site/${PREVIEW_DIR}/ats-pro-report.html" || true
           cp "site/${{ env.PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH }}" "site/${PREVIEW_DIR}/index.html"
           date -u -Iseconds > "site/${PREVIEW_DIR}/.built_at"
+
+          # cache-bust known assets inside index.html
+          BUILT_AT="$(cat site/${PREVIEW_DIR}/.built_at)"
+          for f in "resume.pdf" "ats-pro-report.html" "ats-pro-report.json" "ats-pro-report.md"; do
+            if grep -q "$f" "site/${PREVIEW_DIR}/index.html"; then
+              sed -i "s|\(${f}\)\([\"')]\)|\1?b=${BUILT_AT}\2|g" "site/${PREVIEW_DIR}/index.html"
+            fi
+          done
           echo "preview_url_path=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
 
       - name: Commit & push preview
         working-directory: site
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git pull --rebase --autostash origin ${{ env.SITE_BRANCH }}
-            git add -A
-            git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
-            git push origin ${{ env.SITE_BRANCH }}
+          git add -A
+          git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
+          git push origin ${{ env.SITE_BRANCH }}
 
       - name: Find prior preview comment
         id: find-comment
@@ -159,7 +170,6 @@ jobs:
             _The page shows your compiled PDF and the ATS breakdown side-by-side._
           edit-mode: replace
 
-      # --- New: ATS Nova comment on the PR ---
       - name: Build ATS Nova comment body
         id: ats-nova
         if: always()
@@ -175,7 +185,6 @@ jobs:
           else
             SCORE="n/a"; GATES_OK="Report missing"; MISS=""; LACK=""; SUG=""
           fi
-
           {
             echo 'body<<EOF'
             echo "## ⚡ ATS Nova — Smart Fit Summary"
@@ -184,17 +193,9 @@ jobs:
             echo ""
             echo "[Open Live Preview]($(echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/")) · [HTML Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/ats-pro-report.html)"
             echo ""
-            if [ -n "$MISS" ]; then
-              echo "**Missing required skills:** ${MISS}"
-            fi
-            if [ -n "$LACK" ]; then
-              echo "**Insufficient years (top gaps):** ${LACK}"
-            fi
-            if [ -n "$SUG" ]; then
-              echo ""
-              echo "### Suggestions"
-              echo "$SUG"
-            fi
+            if [ -n "$MISS" ]; then echo "**Missing required skills:** ${MISS}"; fi
+            if [ -n "$LACK" ]; then echo "**Insufficient years (top gaps):** ${LACK}"; fi
+            if [ -n "$SUG" ]; then echo ""; echo "### Suggestions"; echo "$SUG"; fi
             echo ""
             echo "<sub>Posted by <b>ATS Nova</b> 🤖</sub>"
             echo 'EOF'
