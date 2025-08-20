@@ -2,14 +2,14 @@ name: ATS Pro (Strict)
 
 on:
   workflow_run:
-    workflows: ["PR Preview (PDF only)"]   # must match your preview workflow name exactly
+    workflows: ["PR Preview (PDF only)"]   # must match preview workflow name exactly
     types: [completed]
 
 permissions:
-  actions: read          # read artifacts from the triggering run
-  contents: read
-  pull-requests: write   # post/update PR comment
-  statuses: write        # commit status (visual check on PR)
+  actions: read            # read artifacts from the triggering run
+  contents: write          # ⬅ needed to push to gh-pages
+  pull-requests: write     # post/update PR comment
+  statuses: write          # commit status (visual check on PR)
 
 env:
   REPORT_JSON: ats-pro-report.json
@@ -20,6 +20,7 @@ env:
   ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
   MIN_SCORE: "78"
   MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
+  SITE_BRANCH: gh-pages
 
 concurrency:
   group: ats-pro-${{ github.event.workflow_run.id }}
@@ -243,6 +244,47 @@ jobs:
             ${{ env.REPORT_HTML }}
           retention-days: 7
 
+      # --- Publish ATS report into the same PR preview folder on gh-pages ---
+      - name: Checkout gh-pages
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.SITE_BRANCH }}
+          path: site
+          fetch-depth: 0
+
+      - name: Publish ATS report to preview folder
+        id: publish
+        if: hashFiles(env.REPORT_JSON) != '' || hashFiles(env.REPORT_HTML) != ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          PR="${{ steps.prnum.outputs.number }}"
+          PREVIEW_DIR="previews/pr-${PR}"
+          mkdir -p "site/${PREVIEW_DIR}"
+
+          # Copy reports
+          cp "${{ env.REPORT_JSON }}" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
+          cp "${{ env.REPORT_HTML }}" "site/${PREVIEW_DIR}/ats-pro-report.html" || true
+          cp "${{ env.REPORT_MD }}"   "site/${PREVIEW_DIR}/ats-pro-report.md" || true
+
+          # Commit/push
+          (
+            cd site
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Publish ATS report for PR #${PR}" || echo "No changes to commit"
+            git push origin "${{ env.SITE_BRANCH }}"
+          )
+
+          # Build public URLs
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.event.repository.name }}"
+          BASE_URL="https://${OWNER}.github.io/${REPO}/${PREVIEW_DIR}"
+          echo "preview_url=${BASE_URL}/" >> "$GITHUB_OUTPUT"
+          echo "report_html_url=${BASE_URL}/ats-pro-report.html" >> "$GITHUB_OUTPUT"
+          echo "report_json_url=${BASE_URL}/ats-pro-report.json" >> "$GITHUB_OUTPUT"
+
       # --- Build ATS comment whenever the JSON exists (even if ATS step failed) ---
       - name: Build ATS Nova (Strict) comment
         id: parser
@@ -253,16 +295,22 @@ jobs:
           SCORE=$(jq -r '.overall_score // "n/a"' "${{ env.REPORT_JSON }}")
           GATES_PASSED=$(jq -r 'if (.gates | all) then "✅ All Passed" else "❌ Some Failed" end' "${{ env.REPORT_JSON }}")
           SUGGESTIONS=$(jq -r '(.suggestions // []) | .[:6] | map("- " + .) | join("\n")' "${{ env.REPORT_JSON }}")
-          if [ -z "$SUGGESTIONS" ]; then SUGGESTIONS="- (no suggestions emitted)"; fi
+          [ -z "$SUGGESTIONS" ] && SUGGESTIONS="- (no suggestions emitted)"
+
+          PREVIEW_URL="${{ steps.publish.outputs.preview_url }}"
+          REPORT_HTML_URL="${{ steps.publish.outputs.report_html_url }}"
+          REPORT_JSON_URL="${{ steps.publish.outputs.report_json_url }}"
 
           {
             echo 'body<<EOF'
             echo "## ⚡ ATS Nova (Strict Gate)"
             echo ""
-            echo "| Score | Gates Status |"
-            echo "|:-----:|:------------:|"
-            echo "| **$SCORE / 100** | **$GATES_PASSED** |"
+            echo "**Score:** **$SCORE / 100**  |  $GATES_PASSED"
             echo ""
+            if [ -n "$PREVIEW_URL" ]; then
+              echo "[Open Live Preview](${PREVIEW_URL}) · [HTML Report](${REPORT_HTML_URL}) · [JSON](${REPORT_JSON_URL})"
+              echo ""
+            fi
             echo "### Suggestions"
             echo "$SUGGESTIONS"
             echo ""
@@ -296,6 +344,8 @@ jobs:
             echo ""
             echo "- Score: $(jq -r '.overall_score' ats-pro-report.json)/100"
             echo "- Gates: $(jq -r 'if (.gates | all) then "All Passed" else "Some Failed" end' ats-pro-report.json)"
+            echo "- Preview: ${{ steps.publish.outputs.preview_url }}"
+            echo "- HTML: ${{ steps.publish.outputs.report_html_url }}"
           } >> $GITHUB_STEP_SUMMARY
 
       # --- Status API bridge: success/failure ---
