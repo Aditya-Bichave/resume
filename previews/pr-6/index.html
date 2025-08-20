@@ -33,12 +33,12 @@
 <body>
   <header>
     <h1>PR Preview <span class="muted">· Resume + ATS</span></h1>
-    <div class="pill"><a href="ats-pro-report.html?b=2025-08-20T05:39:49+00:00" target="_blank" rel="noopener">Open HTML Report</a></div>
+    <div class="pill"><a href="ats-pro-report.html" target="_blank" rel="noopener">Open HTML Report</a></div>
   </header>
 
   <main>
     <section class="panel" style="min-height:240px;">
-      <iframe src="resume.pdf?b=2025-08-20T05:39:49+00:00"></iframe>
+      <iframe src="resume.pdf?b=2025-08-20T06:27:14+00:00"></iframe>
     </section>
 
     <section class="panel">
@@ -80,7 +80,7 @@
   <script>
   async function load() {
     try {
-      const r = await fetch('ats-pro-report.json?b=2025-08-20T05:39:49+00:00', { cache: 'no-cache' });
+      const r = await fetch('ats-pro-report.json', { cache: 'no-cache' });
       if (!r.ok) throw new Error('ATS report not found');
       const j = await r.json();
 
