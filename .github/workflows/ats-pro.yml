@@ -60,7 +60,7 @@ jobs:
           fi
 
       # ---- Status: pending (visual indicator on PR) ----
-      - name: Set commit status: pending (ATS Pro)
+      - name: Set commit status-pending (ATS Pro)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -256,7 +256,7 @@ jobs:
           } >> $GITHUB_STEP_SUMMARY
 
       # ---- Status: success / failure ----
-      - name: Set commit status: success (ATS Pro)
+      - name: Set commit status-success (ATS Pro)
         if: steps.ats.outcome == 'success'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -273,7 +273,7 @@ jobs:
             -f description="${DESC:0:140}" \
             -f target_url="${TARGET_URL}"
 
-      - name: Set commit status: failure (ATS Pro)
+      - name: Set commit status-failure (ATS Pro)
         if: steps.ats.outcome == 'failure'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
