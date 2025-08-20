@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 env:
   ROOT_TEX: resume_faangpath.tex
@@ -40,6 +39,7 @@ jobs:
           path: pr
 
       - name: Add LaTeX problem matcher
+        # Use a file (more reliable than inline JSON)
         run: |
           cat > .github_latex_matcher.json <<'JSON'
           { "problemMatcher": [
@@ -49,7 +49,6 @@ jobs:
           ] }
           JSON
           echo "::add-matcher::.github_latex_matcher.json"
-
 
       - name: Build resume PDF
         uses: xu-cheng/latex-action@v3

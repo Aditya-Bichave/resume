@@ -6,9 +6,10 @@ on:
     types: [completed]
 
 permissions:
-  actions: read
+  actions: read          # download artifacts from workflow_run
   contents: read
-  pull-requests: write
+  pull-requests: write   # post PR comment
+  statuses: write        # ✅ post commit statuses (visual check on PR)
 
 env:
   REPORT_JSON: ats-pro-report.json
@@ -50,6 +51,28 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_branch }}
           path: pr
+
+      - name: Ensure jq is available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
+      # ---- Status: pending (visual indicator on PR) ----
+      - name: Set commit status: pending (ATS Pro)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER_REPO="${{ github.repository }}"
+          TARGET_URL="${{ github.server_url }}/${OWNER_REPO}/actions/runs/${{ github.run_id }}"
+          gh api -X POST "/repos/${OWNER_REPO}/statuses/${SHA}" \
+            -f state="pending" \
+            -f context="ATS Pro (Strict)" \
+            -f description="Running ATS analysis…" \
+            -f target_url="${TARGET_URL}"
 
       - name: Resolve ATS requirements path (for cache key)
         id: reqs
@@ -114,13 +137,6 @@ jobs:
           echo "  ATS script: $ATS_SCRIPT"
           echo "  Taxonomy:   $ATS_TAXO"
           echo "  JD file:    $JD_FILE"
-
-      - name: Ensure jq is available
-        run: |
-          if ! command -v jq >/dev/null 2>&1; then
-            sudo apt-get update
-            sudo apt-get install -y jq
-          fi
 
       - name: Resolve PR number from head_sha (robust)
         id: prnum
@@ -238,6 +254,39 @@ jobs:
             echo "- Score: $(jq -r '.overall_score' ats-pro-report.json)/100"
             echo "- Gates: $(jq -r 'if (.gates | all) then "All Passed" else "Some Failed" end' ats-pro-report.json)"
           } >> $GITHUB_STEP_SUMMARY
+
+      # ---- Status: success / failure ----
+      - name: Set commit status: success (ATS Pro)
+        if: steps.ats.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER_REPO="${{ github.repository }}"
+          TARGET_URL="${{ github.server_url }}/${OWNER_REPO}/actions/runs/${{ github.run_id }}"
+          SCORE=$(jq -r '.overall_score // "n/a"' "${{ env.REPORT_JSON }}" 2>/dev/null || echo "n/a")
+          DESC="ATS passed (score: ${SCORE})"
+          gh api -X POST "/repos/${OWNER_REPO}/statuses/${SHA}" \
+            -f state="success" \
+            -f context="ATS Pro (Strict)" \
+            -f description="${DESC:0:140}" \
+            -f target_url="${TARGET_URL}"
+
+      - name: Set commit status: failure (ATS Pro)
+        if: steps.ats.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER_REPO="${{ github.repository }}"
+          TARGET_URL="${{ github.server_url }}/${OWNER_REPO}/actions/runs/${{ github.run_id }}"
+          gh api -X POST "/repos/${OWNER_REPO}/statuses/${SHA}" \
+            -f state="failure" \
+            -f context="ATS Pro (Strict)" \
+            -f description="ATS failed gates or crashed" \
+            -f target_url="${TARGET_URL}"
 
       - name: Fail the job if analysis failed
         if: steps.ats.outcome == 'failure'
