@@ -1,4 +1,4 @@
-name: PR Preview (PDF + ATS on preview page)
+name: PR Preview (PDF only)
 
 on:
   pull_request:
@@ -8,6 +8,7 @@ on:
       - "resume*.cls"
       - ".github/workflows/pr-preview.yml"
       - "job-description.txt"
+      - "jd/job-description.txt"
 
 permissions:
   contents: write
@@ -17,9 +18,6 @@ env:
   ROOT_TEX: resume_faangpath.tex
   SITE_BRANCH: gh-pages
   PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH: ci/preview-template.html
-  ATS_SCRIPT_PATH: .github/ats/ats_pro.py
-  ATS_REQS_FILE: .github/ats/requirements.txt
-  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
 
 concurrency:
   group: pr-preview-${{ github.event.pull_request.number }}
@@ -28,87 +26,45 @@ concurrency:
 jobs:
   pr-preview:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - name: Checkout main (tools/JD)
+      - name: Checkout main (for template)
         uses: actions/checkout@v4
         with:
           ref: main
           path: main
 
-      - name: Checkout PR (resume source + possible ATS overrides)
+      - name: Checkout PR (resume source)
         uses: actions/checkout@v4
         with:
           path: pr
 
+      # Optional: LaTeX problem matcher
+      - name: Add LaTeX problem matcher
+        run: |
+          echo '::add-matcher::{"problemMatcher":[{"owner":"latex","pattern":[{"regexp":"^(LaTeX Warning|! LaTeX Error): (.*)$","message":2}]}]}'
+
       - name: Build resume PDF
         uses: xu-cheng/latex-action@v3
+        timeout-minutes: 8
         with:
           root_file: ${{ env.ROOT_TEX }}
           working_directory: pr
 
-      - name: Resolve paths & names
-        id: paths
+      - name: Resolve Filenames
+        id: names
         shell: bash
         run: |
           set -euo pipefail
           BASE_NAME="${ROOT_TEX%.tex}"
           echo "pdf_path=pr/${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
 
-          # prefer PR, fallback to main
-          pick() { local p1="pr/$1"; local p2="main/$1"; [[ -f "$p1" ]] && echo "$p1" || echo "$p2"; }
-
-          ATS_SCRIPT="$(pick "${{ env.ATS_SCRIPT_PATH }}")"
-          ATS_REQS="$(pick "${{ env.ATS_REQS_FILE }}")"
-          ATS_TAXO="$(pick "${{ env.ATS_TAXONOMY_PATH }}")"
-
-          JD_FILE="jd/job-description.txt"
-          [[ -f "$JD_FILE" ]] || JD_FILE="main/jd/job-description.txt"
-
-          echo "ats_script=$ATS_SCRIPT" >> "$GITHUB_OUTPUT"
-          echo "ats_requirements=$ATS_REQS" >> "$GITHUB_OUTPUT"
-          echo "ats_taxonomy=$ATS_TAXO" >> "$GITHUB_OUTPUT"
-          echo "jd_file=$JD_FILE" >> "$GITHUB_OUTPUT"
-
-          echo "Using:"
-          echo "  PDF:         pr/${BASE_NAME}.pdf"
-          echo "  ATS script:  $ATS_SCRIPT"
-          echo "  ATS reqs:    $ATS_REQS"
-          echo "  Taxonomy:    $ATS_TAXO"
-          echo "  JD file:     $JD_FILE"
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Upload resume.pdf artifact (for ATS workflow)
+        uses: actions/upload-artifact@v4
         with:
-          python-version: '3.10'
-
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles('pr/.github/ats/requirements.txt', 'main/.github/ats/requirements.txt') }}
-
-      - name: Install ATS dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          python -m pip install --upgrade pip
-          echo "Using requirements at: ${{ steps.paths.outputs.ats_requirements }}"
-          pip install -r "${{ steps.paths.outputs.ats_requirements }}"
-          python -m spacy download en_core_web_sm
-
-      - name: Run ATS analysis (non-blocking)
-        continue-on-error: true
-        shell: bash
-        run: |
-          set -euo pipefail
-          python "${{ steps.paths.outputs.ats_script }}" \
-            --pdf "${{ steps.paths.outputs.pdf_path }}" \
-            --jd "${{ steps.paths.outputs.jd_file }}" \
-            --taxonomy "${{ steps.paths.outputs.ats_taxonomy }}" \
-            --out-json "ats-pro-report.json" \
-            --out-md   "ats-pro-report.md" \
-            --out-html "ats-pro-report.html" \
-            --min-score 75
+          name: resume-pdf
+          path: ${{ steps.names.outputs.pdf_path }}
+          retention-days: 5
 
       - name: Checkout Pages branch
         uses: actions/checkout@v4
@@ -117,28 +73,25 @@ jobs:
           path: site
           fetch-depth: 0
 
-      - name: Copy to preview folder (+ cache-bust)
+      - name: Copy files into preview folder
         id: prep
         shell: bash
         run: |
           set -euo pipefail
           PREVIEW_DIR="previews/pr-${{ github.event.pull_request.number }}"
           mkdir -p "site/${PREVIEW_DIR}"
-          cp "${{ steps.paths.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
-          cp "ats-pro-report.json" "site/${PREVIEW_DIR}/ats-pro-report.json" || true
-          cp "ats-pro-report.md"   "site/${PREVIEW_DIR}/ats-pro-report.md"   || true
-          cp "ats-pro-report.html" "site/${PREVIEW_DIR}/ats-pro-report.html" || true
+          cp "${{ steps.names.outputs.pdf_path }}" "site/${PREVIEW_DIR}/resume.pdf"
           cp "site/${{ env.PREVIEW_TEMPLATE_PATH_IN_SITE_BRANCH }}" "site/${PREVIEW_DIR}/index.html"
           date -u -Iseconds > "site/${PREVIEW_DIR}/.built_at"
+          echo "preview_url_path=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
 
-          # cache-bust known assets inside index.html
+          # cache-bust assets in index.html
           BUILT_AT="$(cat site/${PREVIEW_DIR}/.built_at)"
-          for f in "resume.pdf" "ats-pro-report.html" "ats-pro-report.json" "ats-pro-report.md"; do
+          for f in "resume.pdf"; do
             if grep -q "$f" "site/${PREVIEW_DIR}/index.html"; then
               sed -i "s|\(${f}\)\([\"')]\)|\1?b=${BUILT_AT}\2|g" "site/${PREVIEW_DIR}/index.html"
             fi
           done
-          echo "preview_url_path=${PREVIEW_DIR}" >> "$GITHUB_OUTPUT"
 
       - name: Commit & push preview
         working-directory: site
@@ -150,70 +103,10 @@ jobs:
           git commit -m "Deploy preview for PR #${{ github.event.pull_request.number }}" || echo "No changes to commit"
           git push origin ${{ env.SITE_BRANCH }}
 
-      - name: Find prior preview comment
-        id: find-comment
-        uses: peter-evans/find-comment@v3
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: 'Live PR Preview (with ATS)'
-
-      - name: Create or update PR comment
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          comment-id: ${{ steps.find-comment.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: |
-            ### 📄 Live PR Preview (with ATS)
-            **Preview URL:** https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/
-            
-            _The page shows your compiled PDF and the ATS breakdown side-by-side._
-          edit-mode: replace
-
-      - name: Build ATS Nova comment body
-        id: ats-nova
-        if: always()
-        shell: bash
+      - name: Summarize Preview
         run: |
-          set -euo pipefail
-          if [ -f "ats-pro-report.json" ]; then
-            SCORE=$(jq -r '.overall_score // "n/a"' ats-pro-report.json)
-            GATES_OK=$(jq -r 'if (.gates | all) then "✅ All gates passed" else "❌ Some gates failed" end' ats-pro-report.json)
-            MISS=$(jq -r '(.missing_required_skills // []) | join(", ")' ats-pro-report.json)
-            LACK=$(jq -r '(.lacking_years // {}) | to_entries | sort_by(.value) | reverse | .[:5] | map("\(.key) (+\(.value) y)") | join(", ")' ats-pro-report.json)
-            SUG=$(jq -r '(.suggestions // []) | .[:6] | map("- " + .) | join("\n")' ats-pro-report.json)
-          else
-            SCORE="n/a"; GATES_OK="Report missing"; MISS=""; LACK=""; SUG=""
-          fi
           {
-            echo 'body<<EOF'
-            echo "## ⚡ ATS Nova — Smart Fit Summary"
+            echo "## PR Preview"
             echo ""
-            echo "**Score:** **${SCORE}/100**  |  ${GATES_OK}"
-            echo ""
-            echo "[Open Live Preview]($(echo "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/")) · [HTML Report](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/ats-pro-report.html)"
-            echo ""
-            if [ -n "$MISS" ]; then echo "**Missing required skills:** ${MISS}"; fi
-            if [ -n "$LACK" ]; then echo "**Insufficient years (top gaps):** ${LACK}"; fi
-            if [ -n "$SUG" ]; then echo ""; echo "### Suggestions"; echo "$SUG"; fi
-            echo ""
-            echo "<sub>Posted by <b>ATS Nova</b> 🤖</sub>"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Find prior ATS Nova comment
-        id: find-ats-nova
-        uses: peter-evans/find-comment@v3
-        with:
-          issue-number: ${{ github.event.pull_request.number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: 'ATS Nova — Smart Fit Summary'
-
-      - name: Create or update ATS Nova comment
-        if: steps.ats-nova.outputs.body
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          comment-id: ${{ steps.find-ats-nova.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
-          body: ${{ steps.ats-nova.outputs.body }}
-          edit-mode: replace
+            echo "- URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/${{ steps.prep.outputs.preview_url_path }}/"
+          } >> $GITHUB_STEP_SUMMARY

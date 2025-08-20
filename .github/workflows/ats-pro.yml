@@ -1,83 +1,153 @@
 name: ATS Pro (Strict)
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
-    paths:
-      - "resume*.tex"
-      - "resume*.cls"
-      - ".github/workflows/ats-pro.yml"
-      - "job-description.txt"
+  workflow_run:
+    workflows: ["PR Preview (PDF only)"]
+    types: [completed]
 
 permissions:
   contents: read
   pull-requests: write
 
 env:
-  ROOT_TEX: resume_faangpath.tex
   REPORT_JSON: ats-pro-report.json
   REPORT_MD: ats-pro-report.md
   REPORT_HTML: ats-pro-report.html
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
+  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
   MIN_SCORE: "78"
   MIN_REQUIRED_SKILLS_COVERAGE: "0.85"
-  ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
 
 concurrency:
-  group: ats-pro-${{ github.event.pull_request.number }}
+  group: ats-pro-${{ github.event.workflow_run.id }}
   cancel-in-progress: true
 
 jobs:
   ats-pro:
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Checkout main branch (fallback for ATS deps/tools)
+      - name: Download resume.pdf artifact from preview
+        uses: actions/download-artifact@v4
+        with:
+          run-id: ${{ github.event.workflow_run.id }}
+          name: resume-pdf
+          path: ./resume_artifact
+
+      - name: Checkout main (tools/JD fallback)
         uses: actions/checkout@v4
         with:
           ref: main
           path: main
 
-      - name: Checkout PR branch
+      - name: Checkout PR branch (for ATS overrides)
         uses: actions/checkout@v4
         with:
+          ref: ${{ github.event.workflow_run.head_branch }}
           path: pr
 
-      - name: Build resume PDF
-        uses: xu-cheng/latex-action@v3
-        with:
-          root_file: ${{ env.ROOT_TEX }}
-          working_directory: pr
-
-      - name: Resolve PDF filename
-        id: names
+      - name: Resolve ATS requirements path (for cache key)
+        id: reqs
         shell: bash
         run: |
-          BASE_NAME="${ROOT_TEX%.tex}"
-          echo "pdf_name=${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+          if [ -f "pr/${{ env.ATS_REQS_FILE }}" ]; then
+            echo "path=pr/${{ env.ATS_REQS_FILE }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "path=main/${{ env.ATS_REQS_FILE }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-atspro-${{ hashFiles(steps.reqs.outputs.path) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles('pr/.github/ats/requirements.txt', 'main/.github/ats/requirements.txt') }}
-
       - name: Install ATS dependencies
-        shell: bash
         run: |
           set -euo pipefail
           python -m pip install --upgrade pip
-          REQS="pr/${{ env.ATS_REQS_FILE }}"
-          if [ ! -f "$REQS" ]; then
-            REQS="main/${{ env.ATS_REQS_FILE }}"
+          pip install -r "${{ steps.reqs.outputs.path }}"
+          python -m spacy download en_core_web_sm || true
+
+      - name: Validate taxonomy JSON (optional)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for p in "pr/${{ env.ATS_TAXONOMY_PATH }}" "main/${{ env.ATS_TAXONOMY_PATH }}"; do
+            if [ -f "$p" ]; then jq empty "$p"; break; fi
+          done
+
+      - name: Validate JD (non-empty)
+        run: |
+          set -euo pipefail
+          test -s "pr/jd/job-description.txt" || test -s "main/jd/job-description.txt" || { echo "JD is missing/empty"; exit 1; }
+
+      - name: Resolve tool paths & inputs
+        id: paths
+        shell: bash
+        run: |
+          set -euo pipefail
+          pick() { local p1="pr/$1"; local p2="main/$1"; [[ -f "$p1" ]] && echo "$p1" || echo "$p2"; }
+          ATS_SCRIPT="$(pick "${{ env.ATS_SCRIPT_PATH }}")"
+          ATS_TAXO="$(pick "${{ env.ATS_TAXONOMY_PATH }}")"
+          JD_FILE="pr/jd/job-description.txt"; [[ -f "$JD_FILE" ]] || JD_FILE="main/jd/job-description.txt"
+          PDF_PATH="$(ls -1 resume_artifact/*.pdf | head -n1)"
+
+          echo "ats_script=$ATS_SCRIPT"     >> "$GITHUB_OUTPUT"
+          echo "ats_taxonomy=$ATS_TAXO"     >> "$GITHUB_OUTPUT"
+          echo "jd_file=$JD_FILE"           >> "$GITHUB_OUTPUT"
+          echo "pdf_path=$PDF_PATH"         >> "$GITHUB_OUTPUT"
+
+          echo "Using:"
+          echo "  PDF:        $PDF_PATH"
+          echo "  ATS script: $ATS_SCRIPT"
+          echo "  Taxonomy:   $ATS_TAXO"
+          echo "  JD file:    $JD_FILE"
+
+      - name: Resolve PR number from head_sha (robust)
+        id: prnum
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          SHA="${{ github.event.workflow_run.head_sha }}"
+          OWNER_REPO="${{ github.repository }}"
+          PR_NUM=$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            /repos/${OWNER_REPO}/commits/${SHA}/pulls \
+            --jq '.[0].number')
+          if [ -z "${PR_NUM:-}" ] || [ "${PR_NUM}" = "null" ]; then
+            echo "No PR found for head_sha=${SHA} in ${OWNER_REPO}" >&2
+            exit 1
           fi
-          echo "Using requirements at: $REQS"
-          pip install -r "$REQS"
+          echo "number=${PR_NUM}" >> "$GITHUB_OUTPUT"
+          echo "Resolved PR #${PR_NUM} from head_sha=${SHA}"
+
+      - name: Derive MIN_SCORE from labels
+        id: gates
+        if: steps.prnum.outputs.number
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          PR=${{ steps.prnum.outputs.number }}
+          OWNER_REPO="${{ github.repository }}"
+          LABELS=$(gh api /repos/${OWNER_REPO}/issues/${PR}/labels --jq '.[].name' | tr '[:upper:]' '[:lower:]' || true)
+          if echo "$LABELS" | grep -q '^ats:strict$'; then
+            echo "min_score=85" >> "$GITHUB_OUTPUT"
+          else
+            echo "min_score=${{ env.MIN_SCORE }}" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Run ATS Pro analysis (non-blocking)
         id: ats
@@ -85,29 +155,15 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ATS="pr/${{ env.ATS_SCRIPT_PATH }}"
-          if [ ! -f "$ATS" ]; then
-            ATS="main/${{ env.ATS_SCRIPT_PATH }}"
-          fi
-          ATS_TAXONOMY_PATH="pr/${{ env.ATS_TAXONOMY_PATH }}"
-          if [ ! -f "$ATS_TAXONOMY_PATH" ]; then
-            ATS_TAXONOMY_PATH="main/${{ env.ATS_TAXONOMY_PATH }}"
-          fi
-          JD="pr/jd/job-description.txt"
-          if [ ! -f "$JD" ]; then
-            JD="main/jd/job-description.txt"
-          fi
-          echo "Using ATS script: $ATS"
-          echo "Using JD file:    $JD"
-          echo "Using taxonomy:   $ATS_TAXONOMY_PATH"
-          python "$ATS" \
-            --pdf "pr/${{ steps.names.outputs.pdf_name }}" \
-            --jd "$JD" \
-            --taxonomy "$ATS_TAXONOMY_PATH"
+          MIN="${{ steps.gates.outputs.min_score || env.MIN_SCORE }}"
+          python "${{ steps.paths.outputs.ats_script }}" \
+            --pdf "${{ steps.paths.outputs.pdf_path }}" \
+            --jd "${{ steps.paths.outputs.jd_file }}" \
+            --taxonomy "${{ steps.paths.outputs.ats_taxonomy }}" \
             --out-json "${{ env.REPORT_JSON }}" \
             --out-md   "${{ env.REPORT_MD }}" \
             --out-html "${{ env.REPORT_HTML }}" \
-            --min-score "${{ env.MIN_SCORE }}" \
+            --min-score "${MIN}" \
             --min-req-coverage "${{ env.MIN_REQUIRED_SKILLS_COVERAGE }}"
 
       - name: Upload report artifacts
@@ -149,20 +205,31 @@ jobs:
 
       - name: Find prior ATS Nova comment
         id: find-comment
+        if: steps.parser.outputs.comment_body && steps.prnum.outputs.number
         uses: peter-evans/find-comment@v3
         with:
-          issue-number: ${{ github.event.pull_request.number }}
+          issue-number: ${{ steps.prnum.outputs.number }}
           comment-author: 'github-actions[bot]'
           body-includes: 'ATS Nova (Strict Gate)'
 
       - name: Create or update PR comment (ATS Nova)
-        if: steps.parser.outputs.comment_body
+        if: steps.parser.outputs.comment_body && steps.prnum.outputs.number
         uses: peter-evans/create-or-update-comment@v4
         with:
           comment-id: ${{ steps.find-comment.outputs.comment-id }}
-          issue-number: ${{ github.event.pull_request.number }}
+          issue-number: ${{ steps.prnum.outputs.number }}
           body: ${{ steps.parser.outputs.comment_body }}
           edit-mode: replace
+
+      - name: Summarize ATS results in job
+        if: steps.ats.outcome == 'success'
+        run: |
+          {
+            echo "## ATS Pro Summary"
+            echo ""
+            echo "- Score: $(jq -r '.overall_score' ats-pro-report.json)/100"
+            echo "- Gates: $(jq -r 'if (.gates | all) then "All Passed" else "Some Failed" end' ats-pro-report.json)"
+          } >> $GITHUB_STEP_SUMMARY
 
       - name: Fail the job if analysis failed
         if: steps.ats.outcome == 'failure'

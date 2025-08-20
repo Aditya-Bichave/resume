@@ -16,6 +16,7 @@ env:
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - name: Checkout gh-pages
         uses: actions/checkout@v4
@@ -23,16 +24,21 @@ jobs:
           ref: ${{ env.SITE_BRANCH }}
           fetch-depth: 0
 
-      - name: Delete previews older than TTL
+      - name: Delete previews older than TTL (hardened)
         shell: bash
         run: |
           set -euo pipefail
           ttl_secs=$(( TTL_DAYS * 24 * 3600 ))
           now=$(date -u +%s)
           removed=0
+          max_remove=50
           if [ -d "$PREVIEWS_DIR" ]; then
             for d in "$PREVIEWS_DIR"/pr-*; do
               [ -d "$d" ] || continue
+              case "$d" in
+                "$PREVIEWS_DIR"/pr-[0-9]*) ;;
+                *) echo "Skip suspicious path: $d"; continue ;;
+              esac
               if [ -f "$d/.built_at" ]; then
                 built=$(date -u -d "$(cat "$d/.built_at")" +%s 2>/dev/null || echo 0)
               else
@@ -41,8 +47,9 @@ jobs:
               age=$(( now - built ))
               if [ "$age" -gt "$ttl_secs" ]; then
                 echo "Removing $d (age ${age}s > ${ttl_secs}s)"
-                git rm -r "$d"
+                git rm -r -- "$d"
                 removed=$((removed+1))
+                [ "$removed" -ge "$max_remove" ] && { echo "Hit deletion cap ($max_remove), stopping"; break; }
               fi
             done
           fi
