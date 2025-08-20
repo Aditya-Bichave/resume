@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PR Preview · Resume + ATS</title>
+  <style>
+    :root{
+      --bg:#0b0d10; --panel:#12151a; --muted:#9aa4b2; --fg:#e7edf3; --ok:#19c37d; --bad:#ff5a5f; --warn:#ffb020; --bar:#1f2630; --accent:#4c8bf5;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    a{color:var(--accent);text-decoration:none}
+    header{display:flex;align-items:center;gap:12px;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #1c212b;background:linear-gradient(180deg,#0b0d10,#0c1117)}
+    header h1{font-size:16px;margin:0}
+    header .pill{border:1px solid #273142;padding:6px 10px;border-radius:999px}
+    main{display:grid;grid-template-columns: 1.1fr 1fr;gap:14px;padding:14px;height:calc(100% - 56px)}
+    .panel{background:var(--panel);border:1px solid #1c212b;border-radius:12px;padding:12px;overflow:auto}
+    .muted{color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1fr 66px;gap:6px;align-items:center}
+    .bar{height:8px;background:var(--bar);border-radius:999px;overflow:hidden}
+    .bar>span{display:block;height:100%;background:linear-gradient(90deg,#3d7bfd,#00c6ff)}
+    .flag{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:10px;margin:6px 0;border:1px solid #222a36}
+    .flag.ok{background:#0b2219;border-color:#103d2c;color:#c6f6df}
+    .flag.bad{background:#2a1112;border-color:#512327;color:#ffd1d3}
+    .flag.warn{background:#2a220d;border-color:#4d3b0d;color:#ffe5b0}
+    code{background:#0e131a;border:1px solid #1e2633;border-radius:6px;padding:2px 6px}
+    iframe{width:100%;height:100%;border:0;border-radius:8px;background:#0e131a}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    @media (max-width: 1024px){ main{grid-template-columns:1fr} iframe{min-height:70vh} }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>PR Preview <span class="muted">· Resume + ATS</span></h1>
+    <div class="pill"><a href="ats-pro-report.html" target="_blank" rel="noopener">Open HTML Report</a></div>
+  </header>
+
+  <main>
+    <section class="panel" style="min-height:240px;">
+      <iframe src="resume.pdf?b=2025-08-20T08:08:35+00:00"></iframe>
+    </section>
+
+    <section class="panel">
+      <h3 style="margin:8px 0 12px;">ATS Summary</h3>
+      <div class="two-col">
+        <div>
+          <div class="muted">Overall Score</div>
+          <div style="font-size:28px;font-weight:700" id="score">—</div>
+        </div>
+        <div>
+          <div class="muted">Role</div>
+          <div id="role">—</div>
+        </div>
+      </div>
+
+      <h4 style="margin:16px 0 8px;">Component Scores</h4>
+      <div class="grid" id="components">
+        <!-- dynamically filled -->
+      </div>
+
+      <h4 style="margin:16px 0 8px;">Gates</h4>
+      <div id="gates"></div>
+
+      <h4 style="margin:16px 0 8px;">Details</h4>
+      <div class="two-col">
+        <div><span class="muted">Total Years Detected:</span> <strong id="years">—</strong></div>
+        <div><span class="muted">Required (total/per-skill):</span> <strong id="years_req">—</strong></div>
+        <div><span class="muted">Required Coverage:</span> <strong id="reqcov">—</strong></div>
+        <div><span class="muted">Nice-to-have Coverage:</span> <strong id="nthcov">—</strong></div>
+      </div>
+
+      <div id="missreq" style="margin-top:10px;"></div>
+
+      <h4 style="margin:16px 0 8px;">Suggestions</h4>
+      <div id="suggestions"></div>
+    </section>
+  </main>
+
+  <script>
+  async function load() {
+    try {
+      const r = await fetch('ats-pro-report.json', { cache: 'no-cache' });
+      if (!r.ok) throw new Error('ATS report not found');
+      const j = await r.json();
+
+      const $ = (id) => document.getElementById(id);
+      const pct = x => (x == null ? '—' : (Math.round(Number(x) * 10) / 10));
+
+      $('score').textContent = j.overall_score ?? '—';
+      $('role').textContent  = j.role_name || j.target_role || '—';
+
+      // Component Scores: render any present keys (ignore formatting_penalty_pct)
+      const cs = j.component_scores || {};
+      const labels = {
+        keywords:'Keywords', semantic:'Semantic', sections:'Sections',
+        experience:'Experience', impact:'Impact', quality:'Quality', seniority:'Seniority'
+      };
+      const componentsEl = $('components');
+      componentsEl.innerHTML = '';
+      Object.entries(cs).forEach(([key,val])=>{
+        if (key === 'formatting_penalty_pct') return;
+        const v = Math.max(0, Math.min(100, Number(val)||0));
+        componentsEl.insertAdjacentHTML('beforeend', `
+          <span>${labels[key] || key}</span>
+          <div class="bar"><span style="width:${v}%"></span></div>
+          <strong>${v}</strong>
+        `);
+      });
+
+      // Gates
+      const gatesEl = $('gates');
+      gatesEl.innerHTML = '';
+      (Object.entries(j.gates || {})).forEach(([k,v])=>{
+        const label = k.replace(/_/g,' ').replace(/\b\w/g, l=>l.toUpperCase());
+        gatesEl.insertAdjacentHTML('beforeend',
+          `<div class="flag ${v?'ok':'bad'}">${v?'✔':'✖'} ${label}</div>`);
+      });
+
+      // Suggestions
+      const suggestions = j.suggestions || [];
+      const suggEl = $('suggestions');
+      suggEl.innerHTML = '';
+      if (suggestions.length) {
+        suggestions.forEach(s => suggEl.insertAdjacentHTML('beforeend',
+          `<div class="flag warn"><span>⚠</span><span>${s}</span></div>`));
+      } else {
+        suggEl.innerHTML = `<div class="flag ok">✔ No major suggestions. Looks good!</div>`;
+      }
+
+      // Details
+      $('years').textContent     = (j.years_total_detected != null) ? j.years_total_detected + 'y' : '—';
+      const perSkill = j.per_skill_years_required || {};
+      $('years_req').textContent = (Object.keys(perSkill).length ? 'per-skill' :
+                                   (j.min_years_experience_total != null ? (j.min_years_experience_total + 'y') : '—'));
+      const toPercent = x => (x==null ? '—' : (Math.round((Number(x)||0)*1000)/10) + '%');
+      $('reqcov').textContent = toPercent(j.required_coverage);
+      $('nthcov').textContent = toPercent(j.nice_to_have_coverage);
+
+      const miss = j.missing_required_skills || [];
+      $('missreq').innerHTML = miss.length
+        ? '<strong class="bad">Missing required:</strong> ' + miss.map(s=>`<code>${s}</code>`).join(', ')
+        : '<div class="flag ok">✔ All required skills found.</div>';
+
+      // Anti-gaming heads-up (optional)
+      const ag = j.anti_gaming || {};
+      if ((ag.white_text_ratio||0) > 0.01 || (ag.tiny_font_ratio||0) > 0.01) {
+        gatesEl.insertAdjacentHTML('afterbegin',
+          '<div class="flag warn">⚠ Anti-gaming suspicion (hidden/tiny text)</div>');
+      }
+    } catch (e) {
+      console.error(e);
+      document.querySelector('main').insertAdjacentHTML('afterbegin',
+        '<div class="panel" style="grid-column: span 2;"><div class="flag warn">ATS report not found or invalid.</div><div class="muted">The ATS analysis step may have failed. Check the workflow run for errors.</div></div>'
+      );
+    }
+  }
+  load();
+  </script>
+</body>
+</html>
