@@ -6,6 +6,7 @@ on:
     types: [completed]
 
 permissions:
+  actions: read
   contents: read
   pull-requests: write
 
@@ -114,6 +115,13 @@ jobs:
           echo "  Taxonomy:   $ATS_TAXO"
           echo "  JD file:    $JD_FILE"
 
+      - name: Ensure jq is available
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y jq
+          fi
+
       - name: Resolve PR number from head_sha (robust)
         id: prnum
         env:
@@ -155,7 +163,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          MIN="${{ steps.gates.outputs.min_score || env.MIN_SCORE }}"
+          MIN="${{ steps.gates.outputs.min_score && steps.gates.outputs.min_score || env.MIN_SCORE }}"
           python "${{ steps.paths.outputs.ats_script }}" \
             --pdf "${{ steps.paths.outputs.pdf_path }}" \
             --jd "${{ steps.paths.outputs.jd_file }}" \

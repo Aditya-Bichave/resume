@@ -39,10 +39,17 @@ jobs:
         with:
           path: pr
 
-      # Optional: LaTeX problem matcher
       - name: Add LaTeX problem matcher
         run: |
-          echo '::add-matcher::{"problemMatcher":[{"owner":"latex","pattern":[{"regexp":"^(LaTeX Warning|! LaTeX Error): (.*)$","message":2}]}]}'
+          cat > .github_latex_matcher.json <<'JSON'
+          { "problemMatcher": [
+            { "owner": "latex",
+              "pattern": [ { "regexp": "^(LaTeX Warning|! LaTeX Error): (.*)$", "message": 2 } ]
+            }
+          ] }
+          JSON
+          echo "::add-matcher::.github_latex_matcher.json"
+
 
       - name: Build resume PDF
         uses: xu-cheng/latex-action@v3
