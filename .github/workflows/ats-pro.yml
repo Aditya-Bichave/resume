@@ -2,14 +2,14 @@ name: ATS Pro (Strict)
 
 on:
   workflow_run:
-    workflows: ["PR Preview (PDF only)"]   # must match preview workflow name exactly
+    workflows: ["PR Preview (PDF only)"]   # must match your preview workflow name exactly
     types: [completed]
 
 permissions:
-  actions: read          # needed to read artifacts from the triggering run
+  actions: read          # read artifacts from the triggering run
   contents: read
-  pull-requests: write   # to post/update the PR comment
-  statuses: write        # to post commit statuses (visual check on PR)
+  pull-requests: write   # post/update PR comment
+  statuses: write        # commit status (visual check on PR)
 
 env:
   REPORT_JSON: ats-pro-report.json
@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # --- Check out main (tools/JD fallback) and PR branch (overrides) ---
+      # --- Check out both branches for tools / overrides ---
       - name: Checkout main (tools/JD fallback)
         uses: actions/checkout@v4
         with:
@@ -99,8 +99,8 @@ jobs:
             -f description="Running ATS analysis…" \
             -f target_url="${TARGET_URL}"
 
-      # --- Robust: list & download artifacts from the triggering run via API ---
-      - name: Download artifacts from triggering run (robust)
+      # --- Robust: list & download artifacts from the triggering run ---
+      - name: Download artifacts from triggering run
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -214,7 +214,7 @@ jobs:
             echo "min_score=${{ env.MIN_SCORE }}" >> "$GITHUB_OUTPUT"
           fi
 
-      # --- ATS run ---
+      # --- ATS run (may exit non-zero if gates fail; we still want the report if created) ---
       - name: Run ATS Pro analysis (non-blocking)
         id: ats
         continue-on-error: true
@@ -243,17 +243,17 @@ jobs:
             ${{ env.REPORT_HTML }}
           retention-days: 7
 
-      # --- Build ATS comment (success path only if JSON exists) ---
+      # --- Build ATS comment whenever the JSON exists (even if ATS step failed) ---
       - name: Build ATS Nova (Strict) comment
         id: parser
-        if: steps.ats.outcome == 'success'
+        if: always() && hashFiles(env.REPORT_JSON) != '' && steps.prnum.outputs.number
         shell: bash
         run: |
           set -euo pipefail
           SCORE=$(jq -r '.overall_score // "n/a"' "${{ env.REPORT_JSON }}")
           GATES_PASSED=$(jq -r 'if (.gates | all) then "✅ All Passed" else "❌ Some Failed" end' "${{ env.REPORT_JSON }}")
           SUGGESTIONS=$(jq -r '(.suggestions // []) | .[:6] | map("- " + .) | join("\n")' "${{ env.REPORT_JSON }}")
-          if [ -z "$SUGGESTIONS" ]; then SUGGESTIONS="- ✅ Looks good!"; fi
+          if [ -z "$SUGGESTIONS" ]; then SUGGESTIONS="- (no suggestions emitted)"; fi
 
           {
             echo 'body<<EOF'
@@ -289,7 +289,7 @@ jobs:
           edit-mode: replace
 
       - name: Summarize ATS results in job
-        if: steps.ats.outcome == 'success'
+        if: always() && hashFiles(env.REPORT_JSON) != ''
         run: |
           {
             echo "## ATS Pro Summary"
