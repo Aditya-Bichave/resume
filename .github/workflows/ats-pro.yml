@@ -2,14 +2,14 @@ name: ATS Pro (Strict)
 
 on:
   workflow_run:
-    workflows: ["PR Preview (PDF only)"]  # must match the preview workflow's name exactly
+    workflows: ["PR Preview (PDF only)"]   # must match preview workflow name exactly
     types: [completed]
 
 permissions:
-  actions: read          # needed to download artifacts from workflow_run
+  actions: read          # needed to read artifacts from the triggering run
   contents: read
-  pull-requests: write   # post PR comment
-  statuses: write        # Status API bridge (visual check on PR)
+  pull-requests: write   # to post/update the PR comment
+  statuses: write        # to post commit statuses (visual check on PR)
 
 env:
   REPORT_JSON: ats-pro-report.json
@@ -34,24 +34,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      # --- Get artifacts from the triggering PR Preview run ---
-      - name: List artifacts on triggering run (debug)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -euo pipefail
-          OWNER_REPO="${{ github.repository }}"
-          RUN_ID="${{ github.event.workflow_run.id }}"
-          echo "Artifacts on run ${RUN_ID}:"
-          gh api "/repos/${OWNER_REPO}/actions/runs/${RUN_ID}/artifacts" --jq '.artifacts[].name'
-
-      - name: Download all artifacts from preview run
-        uses: actions/download-artifact@v4
-        with:
-          run-id: ${{ github.event.workflow_run.id }}
-          path: ./artifacts
-
-      # --- Pull repo content we may need (tools from main, overrides from PR) ---
+      # --- Check out main (tools/JD fallback) and PR branch (overrides) ---
       - name: Checkout main (tools/JD fallback)
         uses: actions/checkout@v4
         with:
@@ -64,12 +47,12 @@ jobs:
           ref: ${{ github.event.workflow_run.head_branch }}
           path: pr
 
-      # --- Tooling setup ---
-      - name: Ensure jq is available
+      # --- Tooling ---
+      - name: Ensure jq and unzip are available
         run: |
-          if ! command -v jq >/dev/null 2>&1; then
+          if ! command -v jq >/dev/null 2>&1 || ! command -v unzip >/dev/null 2>&1; then
             sudo apt-get update
-            sudo apt-get install -y jq
+            sudo apt-get install -y jq unzip
           fi
 
       - name: Resolve ATS requirements path (for cache key)
@@ -115,6 +98,42 @@ jobs:
             -f context="ATS Pro (Strict)" \
             -f description="Running ATS analysis…" \
             -f target_url="${TARGET_URL}"
+
+      # --- Robust: list & download artifacts from the triggering run via API ---
+      - name: Download artifacts from triggering run (robust)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          OWNER_REPO="${{ github.repository }}"
+          RUN_ID="${{ github.event.workflow_run.id }}"
+          mkdir -p artifacts
+
+          echo "Listing artifacts for run ${RUN_ID}…"
+          ART_JSON="$(gh api "/repos/${OWNER_REPO}/actions/runs/${RUN_ID}/artifacts")"
+          COUNT="$(echo "$ART_JSON" | jq '.artifacts | length')"
+          echo "Artifacts count: $COUNT"
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "No artifacts found on triggering run ${RUN_ID}"
+            exit 1
+          fi
+
+          echo "$ART_JSON" | jq -r '.artifacts[] | "\(.id) \(.name)"' | while read -r ID NAME; do
+            echo "Downloading artifact id=$ID name=$NAME"
+            curl -fsSL \
+              -H "Authorization: Bearer $GH_TOKEN" \
+              -H "Accept: application/vnd.github+json" \
+              -o "artifacts/${NAME}.zip" \
+              "${{ github.api_url }}/repos/${OWNER_REPO}/actions/artifacts/${ID}/zip"
+            echo "Unzipping ${NAME}.zip"
+            mkdir -p "artifacts/${NAME}"
+            unzip -q "artifacts/${NAME}.zip" -d "artifacts/${NAME}"
+            rm -f "artifacts/${NAME}.zip"
+          done
+
+          echo "Artifacts downloaded:"
+          find artifacts -maxdepth 3 -type f -print
 
       # --- Validate / resolve inputs ---
       - name: Validate taxonomy JSON (optional)
