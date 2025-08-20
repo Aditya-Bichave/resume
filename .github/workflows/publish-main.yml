@@ -15,11 +15,8 @@ permissions:
   contents: write
 
 env:
-  # --- User Configuration ---
   ROOT_TEX: resume_faangpath.tex
   SITE_BRANCH: gh-pages
-
-  # --- Tool Configuration ---
   ATS_SCRIPT_PATH: .github/ats/ats_pro.py
   ATS_REQS_FILE: .github/ats/requirements.txt
   ATS_TAXONOMY_PATH: .github/ats/taxonomy.json
@@ -27,12 +24,25 @@ env:
 jobs:
   build-and-publish:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout main branch
         uses: actions/checkout@v4
 
+      - name: Add LaTeX problem matcher
+        run: |
+          cat > .github_latex_matcher.json <<'JSON'
+          { "problemMatcher": [
+            { "owner": "latex",
+              "pattern": [ { "regexp": "^(LaTeX Warning|! LaTeX Error): (.*)$", "message": 2 } ]
+            }
+          ] }
+          JSON
+          echo "::add-matcher::.github_latex_matcher.json"
+
       - name: Build PDF
         uses: xu-cheng/latex-action@v3
+        timeout-minutes: 8
         with:
           root_file: ${{ env.ROOT_TEX }}
 
@@ -40,25 +50,27 @@ jobs:
         id: names
         shell: bash
         run: |
+          set -euo pipefail
           BASE_NAME="${ROOT_TEX%.tex}"
           echo "pdf_name=${BASE_NAME}.pdf" >> "$GITHUB_OUTPUT"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-atspro-${{ hashFiles(env.ATS_REQS_FILE) }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
 
-      - name: Cache pip
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-atspro-v3-${{ hashFiles(env.ATS_REQS_FILE) }}
-
       - name: Install ATS dependencies
         run: |
+          set -euo pipefail
           python -m pip install --upgrade pip
           pip install -r "${{ env.ATS_REQS_FILE }}"
-          python -m spacy download en_core_web_sm
+          python -m spacy download en_core_web_sm || true
 
       - name: Ensure jq is available
         run: |
@@ -72,10 +84,7 @@ jobs:
         run: |
           set -euo pipefail
           ATS="${{ env.ATS_SCRIPT_PATH }}"
-          if [ ! -f "$ATS" ]; then
-            echo "ATS script not found at $ATS" >&2
-            exit 1
-          fi
+          [ -f "$ATS" ] || { echo "ATS script not found at $ATS" >&2; exit 1; }
 
           # Prefer JD in jd/, fallback to root
           if [ -f "jd/job-description.txt" ]; then
@@ -98,17 +107,10 @@ jobs:
           [ -n "$TAX" ] && echo "Using taxonomy:  $TAX" || true
 
           PDF="${{ steps.names.outputs.pdf_name }}"
-          if [ ! -f "$PDF" ]; then
-            echo "PDF not found: $PDF" >&2
-            ls -la || true
-            exit 1
-          fi
+          [ -f "$PDF" ] || { echo "PDF not found: $PDF" >&2; ls -la || true; exit 1; }
 
-          # Build args
           CMD=( python "$ATS" --pdf "$PDF" --jd "$JD" --out-json "ats-pro-report.json" --out-md "ats-pro-report.md" --out-html "ats-pro-report.html" )
-          if [ -n "$TAX" ]; then
-            CMD+=( --taxonomy "$TAX" )
-          fi
+          [ -n "$TAX" ] && CMD+=( --taxonomy "$TAX" )
 
           echo "Running: ${CMD[*]}"
           set +e
@@ -120,12 +122,9 @@ jobs:
             echo "NOTE: ATS exited with $ATS_EXIT (likely thresholds/gates not met). Proceeding to publish artifacts."
           fi
 
-          # Ensure outputs exist before moving on
+          # Ensure outputs exist
           for f in ats-pro-report.json ats-pro-report.md ats-pro-report.html; do
-            if [ ! -f "$f" ]; then
-              echo "Missing expected output file: $f" >&2
-              exit 1
-            fi
+            [ -f "$f" ] || { echo "Missing expected output file: $f" >&2; exit 1; }
           done
 
       - name: Prep assets for publishing
@@ -152,13 +151,12 @@ jobs:
           VERSION_TAG="${{ steps.meta.outputs.dateslug }}-${{ steps.meta.outputs.shortsha }}"
           VERSION_DIR="versions/${VERSION_TAG}"
           mkdir -p "site/${VERSION_DIR}" "site/latest"
-          
+
           cp "build/resume.pdf" "site/${VERSION_DIR}/resume.pdf"
           cp "build/ats-pro-report.json" "site/${VERSION_DIR}/ats-pro-report.json"
-          
+
           # Always copy for latest (avoid symlinks on GH Pages)
           cp "site/${VERSION_DIR}/resume.pdf" "site/latest/resume.pdf"
-          # (Optional) also expose latest ATS JSON:
           cp "site/${VERSION_DIR}/ats-pro-report.json" "site/latest/ats-pro-report.json" || true
 
           (
@@ -182,8 +180,20 @@ jobs:
       - name: Commit & push to gh-pages
         working-directory: site
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
           git commit -m "Publish resume version: ${{ steps.meta.outputs.dateslug }}-${{ steps.meta.outputs.shortsha }}" || echo "No changes to commit"
           git push origin ${{ env.SITE_BRANCH }}
+
+      - name: Summarize publish
+        run: |
+          {
+            echo "## Publish Summary"
+            echo ""
+            echo "- Version: ${{ steps.meta.outputs.dateslug }}-${{ steps.meta.outputs.shortsha }}"
+            if [ -f build/ats-pro-report.json ]; then
+              echo "- Score: $(jq -r '.overall_score' build/ats-pro-report.json)"
+            fi
+          } >> $GITHUB_STEP_SUMMARY

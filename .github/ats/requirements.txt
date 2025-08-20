@@ -8,7 +8,9 @@ dateparser>=1.2.0
 language-tool-python>=2.7.3
 
 # NLP (optional)
-spacy>=3.7.2
+# Pin spaCy and model to matching 3.8 release so the model can be installed via pip
+spacy>=3.8.0,<3.9
+en-core-web-sm@https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-3.8.0/en_core_web_sm-3.8.0-py3-none-any.whl
 # If you want NER for company detection:
 # python -m spacy download en_core_web_sm
 
