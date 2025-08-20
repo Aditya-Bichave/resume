@@ -4,36 +4,16 @@ ATS Pro Plus — A production-grade, explainable ATS scoring script
 -----------------------------------------------------------------
 Persona: Senior Software Architect & Senior Software Developer (20+ yrs)
 
-Key upgrades in v2.1.0:
-  ✓ External taxonomy JSON with categories (hard/soft/methodologies/domains/certs/titles/seniority/scope)
-  ✓ Optional JD-filtered taxonomy: use only skills that appear in the JD (but keep synonyms for resume matching)
-  ✓ Scoring dimensions expanded:
-      - Hard-skill match (JD-driven, canonical+synonyms, family expansion)
-      - Years per skill (timeline-scoped by experience blocks)
-      - Recency of relevant work (months since last use per required skill)
-      - Title & seniority alignment (resume vs JD)
-      - Role scope fit (IC vs lead/manager)
-      - Domain/industry relevance
-      - Methodologies & architecture coverage (microservices, CI/CD, testing, etc.)
-      - Breadth vs depth (unique skills matched vs deeper experience)
-      - Project impact & metrics (bullets with numbers / outcomes verbs)
-      - Keyword placement (Summary + Experience vs only Skills list)
-      - Career progression & stability (promotion signals, short stints)
-      - Education & certifications (degree presence & mapped certs)
-      - JD coverage score (must-haves vs nice-to-haves)
-      - Readability & clarity (textstat) + optional grammar
-      - Format & parse-ability (multi-column, OCR fallback, hidden text)
-      - Contact & links extraction (email/phone/LinkedIn/GitHub)
-      - Chronology consistency (gaps/overlaps)
-      - Anti-gaming checks (stuffing, white text, tiny fonts)
-      - Compliance/constraints (location/auth/onsite-ready)
-  ✓ Scoring-config JSON to tweak weights & thresholds without code changes
-  ✓ Batch ranking + HTML reports, JSON/MD, observability & timings
-
-Notes:
-- Optional deps are used if present and gracefully degraded if missing.
-- No external network calls — models must be installed locally if used.
-- Single-file design for drop-in use.
+Key upgrades in v2.2.0 (this patch):
+  ✓ Keep a line-broken, artifact-normalized copy for sectioning & date parsing
+  ✓ Separate "flat" copy for token/similarity scoring (do NOT collapse early)
+  ✓ De-hyphenation & Unicode normalization to fix split tokens (e.g., Kuber– netes)
+  ✓ Overlap-safe total experience (union of months, not naive sum)
+  ✓ Recency strictly from Experience blocks (ignores Summary/Skills)
+  ✓ Per-skill table hides 0/0 rows; table limited to JD-relevant skills
+  ✓ Semantic fallback when models or TF-IDF are unavailable (Jaccard overlap)
+  ✓ Component 'Per-skill Years' no longer shows 100 when JD has no per-skill year reqs
+  ✓ Cleaner HTML report & clearer gates/metrics
 
 Usage examples:
   # Single resume
@@ -151,7 +131,7 @@ try:
 except Exception:
     fitz = None
 
-VERSION = "2.1.0"
+VERSION = "2.2.0"
 
 logger = logging.getLogger("ATSProPlus")
 handler = logging.StreamHandler(sys.stdout)
@@ -177,19 +157,48 @@ def safe_float(x, default=0.0):
     except Exception:
         return default
 
+def normalize_pdf_artifacts(s: str) -> str:
+    """
+    Fix soft hyphens and odd punctuation while PRESERVING newlines for segmentation.
+    Critically, only join hyphenations that break across a newline.
+    """
+    if not s:
+        return ""
+    # Replace Unicode dash variants and minus
+    s = (s.replace("\u2013", "-")
+         .replace("\u2014", "-")
+         .replace("\u2212", "-"))
+    # Remove soft hyphen & zero-widths
+    s = s.replace("\u00AD", "")  # soft hyphen
+    s = s.replace("\u200B", "").replace("\u2009", "").replace("\u2060", "")
+    # Normalize NBSP
+    s = s.replace("\u00A0", " ")
+    # JOIN ONLY true line-break hyphenations: "Kuber-\nnetes" -> "Kubernetes"
+    s = re.sub(r"(\w)-\s*\n\s*(\w)", r"\1\2", s)
+    # DO NOT join hyphens with spaces around them; they may be date separators ("2019 - 2021")
+    # s = re.sub(r"(\w)-\s+(\w)", r"\1\2", s)  # ← remove/keep commented out
+    # Trim trailing spaces on lines (keep newlines)
+    s = re.sub(r"[ \t]+\n", "\n", s)
+    return s
+
 # ---------- PDF/LaTeX ----------
 def extract_pdf_text(pdf_path: str, use_ocr: bool = False) -> str:
+    """
+    Return RAW, line-broken text. DO NOT collapse whitespace here.
+    """
     text = ""
     if fitz is not None:
         try:
             with fitz.open(pdf_path) as doc:
                 parts = [page.get_text("text") for page in doc]
                 text = "\n".join(parts)
+                logger.debug("Text extracted with PyMuPDF.")
         except Exception:
             text = ""
     if not text and pdfminer_extract_text is not None:
         try:
             text = pdfminer_extract_text(pdf_path) or ""
+            logger.debug("Text extracted with pdfminer.six.")
         except Exception:
             text = ""
     if not text and use_ocr and pdfplumber is not None and pytesseract is not None and Image is not None:
@@ -201,16 +210,17 @@ def extract_pdf_text(pdf_path: str, use_ocr: bool = False) -> str:
                     pil = img if isinstance(img, Image.Image) else Image.open(io.BytesIO(img))
                     parts.append(pytesseract.image_to_string(pil))
                 text = "\n".join(parts)
+            logger.debug("Text extracted via OCR fallback.")
         except Exception:
             text = ""
-    return normalize_ws(text)
+    return text or ""
 
 def normalize_bullets(s: str) -> str:
-    # put a newline before any " • " that isn't already at start of a line
+    # Put a newline before mid-line bullets to aid segmentation
     s = re.sub(r"(?<!^)\s*•\s+", r"\n• ", s)
-    # also catch dash bullets that appear mid-line: " - " or " – "
     s = re.sub(r"(?<!^)\s+[–\-]\s+(?=[A-Z0-9])", r"\n- ", s)
     return s
+
 def detect_multicolumn(pdf_path: str) -> bool:
     if pdfplumber is None:
         return False
@@ -293,21 +303,20 @@ def _as_set(value) -> set:
 
 def load_taxonomy(path: Optional[str]) -> TaxonomyBundle:
     """
-    Expected JSON schema (example at bottom of file):
+    JSON schema (excerpt):
     {
-      "schema_version": "1.0",
       "skills": {
-        "hard": { "java": ["spring","spring boot"], "kubernetes": ["k8s"], ... },
-        "soft": { "communication": ["communicator","stakeholder communication"], ... },
-        "methodologies": { "microservices": ["service oriented","soa"], "ci/cd":["ci cd",...], ... },
-        "domains": { "fintech": ["payments","banking"], "adtech":["advertising", "rtb"], ... }
+        "hard": {"java":["spring","spring boot"], "kubernetes":["k8s"], ...},
+        "soft": {...},
+        "methodologies": {"microservices":["soa"], "ci/cd":["ci cd",...], ...},
+        "domains": {"fintech":["payments","banking"], ...}
       },
-      "families": { "cloud": ["aws","gcp","azure"], "frontend":["react","angular","vue"] },
-      "certifications": { "aws": ["aws certified", "aws saa", ...], "gcp": ["professional cloud ..."] },
-      "searchables": { "rest": ["restful"], "graphql":[] },
-      "titles": { "ic": ["engineer","developer","sde","contributor"], "lead": ["lead","manager","architect","head"] },
-      "seniority": { "junior":["jr","junior","i"], "mid":["ii","mid"], "senior":["sr","senior","iii"], "staff":["staff"], "principal":["principal"], "architect":["architect"] },
-      "role_scope": { "ic":["individual contributor","ic"], "lead":["lead","leading"], "manager":["manager","managing"] }
+      "families": {"cloud":["aws","gcp","azure"]},
+      "certifications": {"aws":["aws certified", "saa", ...]},
+      "searchables": {"rest":["restful"], "graphql":[]},
+      "titles": {"ic":["engineer","developer","sde"], "lead":["lead","manager","architect"]},
+      "seniority": {"junior":["jr"], "mid":["ii","mid"], "senior":["sr","senior","iii"], ...},
+      "role_scope": {"ic":["individual contributor","ic"], "lead":["lead"], "manager":["manager"]}
     }
     """
     if not path or not pathlib.Path(path).exists():
@@ -379,7 +388,6 @@ def subset_taxonomy_for_jd(jd_text: str, tax: TaxonomyBundle) -> TaxonomyBundle:
         return False
 
     active_canon: Dict[str, set] = {}
-    # Filter across canon keys
     for k, syns in tax.canon.items():
         if _appear(k, syns):
             active_canon[k] = set(syns)
@@ -395,7 +403,7 @@ def subset_taxonomy_for_jd(jd_text: str, tax: TaxonomyBundle) -> TaxonomyBundle:
         domains=_filter_keys(tax.domains),
         families={fam: set(v for v in vs if v in active_canon) for fam, vs in tax.families.items()},
         certs={k: v for k, v in tax.certs.items() if k in active_canon},
-        titles_ic=tax.titles_ic,               # titles/scope/seniority stay global
+        titles_ic=tax.titles_ic,
         titles_lead=tax.titles_lead,
         seniority_terms=tax.seniority_terms,
         role_scope_terms=tax.role_scope_terms
@@ -459,15 +467,17 @@ def split_sections(text: str) -> Dict[str, str]:
     return spans
 
 DATE_RANGE_RE = re.compile(
-    r"(?P<a>(?:[A-Za-z]{3,9}\s+\d{4}|\d{1,2}/\d{4}|\d{4}))\s*(?:–|—|-|to|till|until)\s*"
+    r"(?P<a>(?:[A-Za-z]{3,9}\s+\d{4}|\d{1,2}/\d{4}|\d{4}))\s*(?:--|–|—|-|to|till|until)\s*"
     r"(?P<b>(?:Present|Current|Now|\d{4}|[A-Za-z]{3,9}\s+\d{4}|\d{1,2}/\d{4}))",
     re.I,
 )
 
 def normalize_dates_text(s: str) -> str:
+    if not s:
+        return s
     s = re.sub(r"\b(till|until)\b", "to", s, flags=re.I)
     s = re.sub(r"\b(current|now)\b", "Present", s, flags=re.I)
-    s = s.replace("—", "–").replace("-", "–")  # unify dashes to EN DASH
+    s = s.replace("—", "-").replace("–", "-")
     return s
 
 def split_blocks_on_multi_ranges(blocks: list[str]) -> list[str]:
@@ -477,11 +487,9 @@ def split_blocks_on_multi_ranges(blocks: list[str]) -> list[str]:
         if len(matches) <= 1:
             new_blocks.append(blk)
             continue
-        # cut the block at each subsequent date range start
         starts = [m.start() for m in matches]
         for i, (a, b) in enumerate(zip(starts, starts[1:] + [len(blk)])):
             seg = blk[a:b].strip()
-            # include the heading portion before first date
             if i == 0:
                 head = blk[:a].strip()
                 if head:
@@ -523,16 +531,15 @@ class Experience:
         return max(0.0, float(m))
 
 def extract_location_req(jd_text: str) -> str:
-    # super-light heuristic: look for a capitalized city/region or 'onsite'
     if re.search(r"\b(onsite|on-site)\b", jd_text, re.I):
         return "onsite"
-    # If it only says remote/hybrid/flexible, don't treat as a hard location
     if re.search(r"\b(remote|hybrid|flexible)\b", jd_text, re.I):
         return ""
-    # otherwise try to capture a location-like token (very naive)
-    m = re.search(r"\b(?:Bangalore|Bengaluru|Pune|Hyderabad|India|USA|UK|Singapore|Canada)\b", jd_text)
+    m = re.search(r"\b(?:Bangalore|Bengaluru|Pune|Hyderabad|India|USA|UK|Singapore|Canada)\b", jd_text, re.I)
     return m.group(0).lower() if m else ""
+
 def segment_experiences(text: str) -> List[Experience]:
+    # text here MUST be line-broken and artifact-normalized (NOT flattened)
     blocks: List[str] = []
     sections = split_sections(text)
     exp_text = sections.get("experience") or text
@@ -552,7 +559,6 @@ def segment_experiences(text: str) -> List[Experience]:
         blocks.append("\n".join(cur))
 
     blocks = split_blocks_on_multi_ranges(blocks)
-
 
     nlp = None
     if spacy is not None:
@@ -592,9 +598,32 @@ def segment_experiences(text: str) -> List[Experience]:
         exps.append(Experience(title=title, company=company, start=start, end=end, bullets=bullets, raw_block=b))
     return exps
 
+def _iter_months(start: datetime, end: datetime) -> List[Tuple[int, int]]:
+    """Inclusive of start month, exclusive of month after end."""
+    if not start:
+        return []
+    e = end or datetime.now()
+    y, m = start.year, start.month
+    out = []
+    while (y < e.year) or (y == e.year and m <= e.month):
+        out.append((y, m))
+        if m == 12:
+            y += 1
+            m = 1
+        else:
+            m += 1
+        # stop if we've stepped past end
+        if (y > e.year) or (y == e.year and m > e.month):
+            break
+    return out
+
 def years_total_from_experiences(exps: List[Experience]) -> float:
-    months = sum(e.months for e in exps)
-    return round(months / 12.0, 2)
+    covered = set()
+    for e in exps:
+        if e.start:
+            for ym in _iter_months(e.start, e.end or datetime.now()):
+                covered.add(ym)
+    return round(len(covered) / 12.0, 2)
 
 def compute_per_skill_years(exps: List[Experience], skills: List[str], canon_map: Dict[str, set]) -> Dict[str, float]:
     res: Dict[str, float] = {canonicalize_skill(s, canon_map): 0.0 for s in skills}
@@ -607,7 +636,6 @@ def compute_per_skill_years(exps: List[Experience], skills: List[str], canon_map
     return {k: round(v / 12.0, 2) for k, v in res.items()}
 
 def compute_last_used_months(exps: List[Experience], skills: List[str], canon_map: Dict[str, set]) -> Dict[str, Optional[int]]:
-    """Return months since last use for each skill; None if never used."""
     now = datetime.now()
     out: Dict[str, Optional[int]] = {}
     for s in skills:
@@ -631,12 +659,10 @@ SENIORITY_ORDER = ["intern", "junior", "associate", "mid", "senior", "lead", "st
 
 def detect_seniority(text: str, seniority_terms: Optional[Dict[str, set]] = None) -> Optional[str]:
     t = (text or "").lower()
-    # priority by explicit term map if provided
     if seniority_terms:
         for level, terms in seniority_terms.items():
             if any(re.search(rf"\b{re.escape(term)}\b", t) for term in terms | {level}):
                 return level
-    # fallback heuristic
     for s in reversed(SENIORITY_ORDER):
         if re.search(fr"\b{s}\b", t):
             return s
@@ -667,7 +693,6 @@ def detect_role_scope(text: str, role_scope_terms: Optional[Dict[str, set]] = No
         for scope, terms in role_scope_terms.items():
             if any(re.search(rf"\b{re.escape(term)}\b", t) for term in terms | {scope}):
                 return scope
-    # heuristic
     if re.search(r"\b(manager|managing|managed|team lead|led|leadership|architect)\b", t):
         return "lead"
     return "ic"
@@ -686,7 +711,7 @@ REMOTE_WORDS = ["remote", "hybrid", "relocate", "relocation", "onsite"]
 @dataclass
 class AutoJD:
     role_name: str
-    required_skills: List[str]             # hard skills inferred
+    required_skills: List[str]
     nice_to_have_skills: List[str]
     per_skill_years: Dict[str, float]
     min_years_total: float
@@ -753,7 +778,6 @@ def extract_requirements_from_jd(jd_text: str, tax: TaxonomyBundle) -> AutoJD:
     if m_role:
         role_name = m_role.group(1)[:80]
 
-    # Nice-to-have heuristic: anything in canon that appears but not in hard_found
     nice: List[str] = sorted(list((_hits_from(set(tax.canon.keys())) - hard_found) - soft_found))
 
     return AutoJD(
@@ -773,6 +797,20 @@ def extract_requirements_from_jd(jd_text: str, tax: TaxonomyBundle) -> AutoJD:
     )
 
 # ---------- Semantics ----------
+def _overlap_sentence_scores(jd_text: str, sentences: List[str]) -> List[Tuple[str, float]]:
+    jd_toks = set(tokenize(jd_text))
+    scored = []
+    for s in sentences:
+        stoks = set(tokenize(s))
+        if not stoks or not jd_toks:
+            score = 0.0
+        else:
+            inter = len(stoks & jd_toks)
+            score = inter / math.sqrt(len(stoks) * len(jd_toks))
+        scored.append((s, float(score)))
+    scored.sort(key=lambda x: -x[1])
+    return scored[:10]
+
 def semantic_scores(
         jd_text: str,
         resume_text: str,
@@ -786,18 +824,37 @@ def semantic_scores(
 
     result: Dict[str, Any] = {"bi_encoder_score": 0.0, "cross_encoder_score": 0.0, "top_chunks": []}
 
+    # TF-IDF baseline if available
     tfidf_score = 0.0
+    tfidf_chunks: List[Tuple[str, float]] = []
     if TfidfVectorizer is not None and cosine_similarity is not None:
         try:
             tfidf = TfidfVectorizer(ngram_range=(1, 2), min_df=1)
             tfidf_mat = tfidf.fit_transform([jd, res])
             tfidf_score = float(cosine_similarity(tfidf_mat[0:1], tfidf_mat[1:2])[0][0])
+            # sentence overlap ranking as proxy for "top chunks"
+            tfidf_chunks = _overlap_sentence_scores(jd, sentences)
         except Exception:
             tfidf_score = 0.0
+            tfidf_chunks = []
 
+    # If transformer is missing, fall back to TF-IDF or Jaccard-like overlap
     if SentenceTransformer is None:
-        result["bi_encoder_score"] = tfidf_score
-        result["cross_encoder_score"] = tfidf_score
+        if tfidf_chunks:
+            result["top_chunks"] = tfidf_chunks
+        else:
+            result["top_chunks"] = _overlap_sentence_scores(jd, sentences)
+        # choose a non-zero fallback
+        if tfidf_score > 0:
+            result["bi_encoder_score"] = tfidf_score
+            result["cross_encoder_score"] = tfidf_score
+        else:
+            # Jaccard on bigrams as last resort
+            jdb = bigrams(tokenize(jd))
+            rb = bigrams(tokenize(res))
+            jac = (len(jdb & rb) / len(jdb | rb)) if (jdb or rb) else 0.0
+            result["bi_encoder_score"] = jac
+            result["cross_encoder_score"] = jac
         return result
 
     try:
@@ -828,6 +885,11 @@ def semantic_scores(
 
     except Exception as e:
         logger.warning(f"Semantic model error: {e}")
+        # fall back gracefully
+        if tfidf_chunks:
+            result["top_chunks"] = tfidf_chunks
+        else:
+            result["top_chunks"] = _overlap_sentence_scores(jd, sentences)
         result["bi_encoder_score"] = tfidf_score
         result["cross_encoder_score"] = tfidf_score
 
@@ -885,7 +947,7 @@ def anti_gaming_metrics(text: str, pdf_path: Optional[str]) -> Dict[str, float]:
 
 # ---------- Contacts / Links ----------
 CONTACT_EMAIL_RE = re.compile(r"[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}")
-CONTACT_PHONE_RE = re.compile(r"(?:\+?\d[\d\-().\s]{7,}\d)")
+CONTACT_PHONE_RE = re.compile(r"(\(?\+?\d{1,3}\)?[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{4}")
 LINK_URL_RE = re.compile(r"https?://[^\s)]+", re.I)
 
 def contact_links(text: str) -> Dict[str, Any]:
@@ -918,7 +980,7 @@ h2{font-size:20px;margin:16px 0 8px}
 .bar{height:10px;background:#e5e7eb;border-radius:6px;overflow:hidden}
 .bar>span{display:block;height:10px;background:#3b82f6}
 .small{font-size:12px;color:#555}
-.code{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px}
+.code{font-family:ui-monospace, SFMono-Regular, Menlo, monospace;background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:8px;white-space:pre-wrap}
 mark{background:#fef08a}
 .kv{display:flex;flex-wrap:wrap;gap:10px}
 .kv .item{background:#f8fafc;border:1px solid #e5e7eb;border-radius:8px;padding:6px 10px;font-size:12px}
@@ -945,9 +1007,12 @@ def render_html(report: Dict[str, Any], resume_text: str, jd_text: str, out_path
     per_skill_last = report.get("per_skill_last_used_months", {})
 
     bars = []
+    # Only show JD-relevant skills; skip pure 0/0 rows
     for k in sorted(set(per_skill_required.keys()) | set(per_skill_est.keys())):
         need = float(per_skill_required.get(k, 0))
         have = float(per_skill_est.get(k, 0))
+        if need == 0.0 and have == 0.0:
+            continue
         pct = 0 if need <= 0 else min(100, int((have / need) * 100))
         rec = per_skill_last.get(k)
         rec_s = (f"{rec} mo ago" if isinstance(rec, int) else "n/a")
@@ -999,7 +1064,7 @@ def render_html(report: Dict[str, Any], resume_text: str, jd_text: str, out_path
     <h2>Per-skill Years & Recency</h2>
     <table class='table'>
       <tr><th>Skill</th><th>Estimated</th><th>Required</th><th>Coverage</th><th>Last used</th></tr>
-      {''.join(bars)}
+      {''.join(bars) if bars else "<tr><td colspan='5' class='small'>No per-skill year requirements specified in the JD.</td></tr>"}
     </table>
   </div>
 
@@ -1046,13 +1111,12 @@ DEFAULT_WEIGHTS = {
     "role_scope": 0.03,
     "stability": 0.03,
     "compliance": 0.03,
-    # formatting/anti-gaming treated as penalty below
 }
 
 DEFAULT_THRESHOLDS = {
     "job_hop_months": 9,
     "gap_months_warn": 6,
-    "recency_half_life_months": 24,  # for recency decay
+    "recency_half_life_months": 24,
 }
 
 def load_scoring_config(path: Optional[str]) -> Tuple[Dict[str, float], Dict[str, Any]]:
@@ -1075,7 +1139,6 @@ def compute_breadth_depth(required: List[str], per_skill_years_est: Dict[str, fl
     matched = [s for s in required if per_skill_years_est.get(s, 0.0) > 0]
     breadth = len(matched) / len(required)
     depth = statistics.median([per_skill_years_est.get(s, 0.0) for s in matched]) if matched else 0.0
-    # normalize depth (e.g., 0-5y mapped to 0..1)
     depth_norm = min(1.0, depth / 5.0)
     return breadth, depth_norm
 
@@ -1091,7 +1154,6 @@ def keyword_placement_score(sections: Dict[str, str], skills: List[str], canon_m
     hits_sum = sum(1 for s in skills if synonym_hit(s, tokens_sum, canon_map))
     hits_exp = sum(1 for s in skills if synonym_hit(s, tokens_exp, canon_map))
     hits_sk = sum(1 for s in skills if synonym_hit(s, tokens_sk, canon_map))
-    # Reward presence in Summary and Experience; small credit for Skills list
     denom = max(1, len(skills))
     return min(1.0, (0.4 * hits_sum + 0.5 * hits_exp + 0.1 * hits_sk) / denom)
 
@@ -1100,7 +1162,6 @@ def stability_progression_score(exps: List[Experience]) -> Tuple[float, Dict[str
         return 0.0, {"avg_months": 0, "short_roles": 0, "promotions": 0}
     avg_months = statistics.mean([e.months for e in exps]) if exps else 0.0
     short_roles = sum(1 for e in exps if e.months < 9.0)
-    # promotions: detect increasing seniority across chronology
     ordered = sorted(exps, key=lambda e: (e.start or datetime(1900,1,1)))
     levels = [detect_seniority(e.title) for e in ordered]
     promotions = 0
@@ -1110,7 +1171,6 @@ def stability_progression_score(exps: List[Experience]) -> Tuple[float, Dict[str
             db = SENIORITY_ORDER.index(b) if b in SENIORITY_ORDER else 0
             if db > da:
                 promotions += 1
-    # normalize: avg tenure 12-36 months -> 0..1, penalize many short roles
     avg_norm = max(0.0, min(1.0, (avg_months - 12.0) / 24.0))
     penalty = min(1.0, short_roles / max(1, len(exps)))
     score = max(0.0, min(1.0, avg_norm * (1.0 - 0.7 * penalty) + min(1.0, promotions / 3.0) * 0.3))
@@ -1173,21 +1233,21 @@ def compute_scores(
     work_auth_req = (role.get("work_authorization", "") or "").lower()
     degree_req = (role.get("degree", "") or "").lower()
 
-    # Resume tokens
+    # Resume tokens (flat)
     res_tokens = tokenize(resume_text)
     token_set_res = set(res_tokens)
 
     # Semantics
     sem = semantic_scores(jd_text, resume_text, args.bi_encoder, args.cross_encoder)
 
-    # Per-skill years + recency
+    # Per-skill years + recency (JD-relevant only)
     skills_for_eval = sorted(set(required_hard) | set(per_skill_years_req.keys()))
     per_skill_years_est = compute_per_skill_years(exps, skills_for_eval, tax.canon)
     per_skill_last_used = compute_last_used_months(exps, skills_for_eval, tax.canon)
 
     years_total = years_total_from_experiences(exps)
 
-    # Hard/soft/NTF coverage
+    # Hard/soft coverage
     def _cov(skills: List[str]) -> float:
         if not skills: return 1.0
         return sum((synonym_hit(s, token_set_res, tax.canon) or (s in token_set_res)) for s in skills) / len(skills)
@@ -1196,16 +1256,14 @@ def compute_scores(
     soft_cov = _cov(required_soft)
     nth_cov = _cov(nice_to_have)
 
-    # Families: if JD says "cloud" family, allow aws/gcp/azure to satisfy (if present in families)
+    # Families: allow a family word in JD to be satisfied by any member on resume
     for fam, members in (tax.families or {}).items():
         if fam in required_hard and any(m in token_set_res for m in members):
             hard_cov = min(1.0, hard_cov + 1.0 / max(1, len(required_hard)))
 
-    # Phrases overlap
     jd_bigrams = bigrams(tokenize(jd_text))
     phrase_cov = (sum(1 for p in jd_bigrams if p in resume_text.lower()) / max(1, len(jd_bigrams))) if jd_bigrams else 0.0
 
-    # Sections presence/order
     present_sections = {k: (k in sections and len(sections[k]) > 40) for k in [
         "summary","experience","projects","skills","education","certifications","achievements","links",
     ]}
@@ -1215,11 +1273,9 @@ def compute_scores(
     if indices != sorted(indices):
         order_penalty = 0.05
 
-    # Impact bullets
-    bullets = re.findall(r"(?:^|\n)[•\-–]\s*(.+?)(?=\n|$)", resume_text)
+    bullets = re.findall(r"(?:^|\n)[•\-–]\s*(.+?)(?=\n|$)", "\n".join(sections.values()))
     digits_ratio = (sum(bool(re.search(r"\d", b)) for b in bullets) / len(bullets)) if bullets else 0.0
 
-    # Quality
     q = readability_metrics(resume_text)
     grammar_count = grammar_issues(resume_text) if args.grammar_check else 0
     hygiene_score = max(0.0, 1.0 - min(1.0, grammar_count / 50.0))
@@ -1227,43 +1283,32 @@ def compute_scores(
     if q["flesch_reading_ease"]:
         read_norm = min(1.0, max(0.0, (q["flesch_reading_ease"] / 100.0)))
 
-    # Seniority & role scope
     res_seniority = detect_seniority(resume_text, tax.seniority_terms)
     sdist = seniority_distance(res_seniority, jd_seniority)
     seniority_fit = max(0.0, 1.0 - min(1.0, sdist / 4.0))
     res_scope = detect_role_scope(resume_text, tax.role_scope_terms)
     scope_fit = 1.0 if (jd_scope == res_scope) else 0.6 if (jd_scope in ("lead","manager") and res_scope == "ic") else 0.8
 
-    # Methodologies / Domain coverage
     meth_cov = _cov(jd_methodologies)
     domain_cov = _cov(jd_domains)
 
-    # Breadth vs depth
     breadth, depth = compute_breadth_depth(required_hard, per_skill_years_est)
-
-    # Placement score (summary/experience vs skills list)
     placement = keyword_placement_score(sections, required_hard, tax.canon)
 
-    # Recency score: exponential decay with half-life
     half_life = max(1, int(thresholds.get("recency_half_life_months", 24)))
     def _rec_norm(m: Optional[int]) -> float:
         if m is None: return 0.0
-        return 0.5 ** (m / half_life)  # 1.0 now, 0.5 at half_life months, etc.
+        return 0.5 ** (m / half_life)
     rec_vals = [_rec_norm(per_skill_last_used.get(s)) for s in required_hard] or [1.0]
     recency = sum(rec_vals) / len(rec_vals)
 
-    # Education & certs
     edu_score, edu_meta = edu_certs_score(sections, tax)
-
-    # Stability & chronology
     stability_score, stab_meta = stability_progression_score(exps)
     chrono = chronology_consistency(exps)
 
-    # Contact & links
     contacts = contact_links(resume_text)
     contact_ok = bool(contacts["emails"]) and (bool(contacts["phones"]) or contacts["linkedin"] or contacts["github"])
 
-    # Formatting & anti-gaming
     fmt_flags = {
         "multi_column_pdf": bool(pdf_path and detect_multicolumn(pdf_path)),
     }
@@ -1272,11 +1317,10 @@ def compute_scores(
     if ag["top_token_ratio"] > 0.06 or ag["bigram_unique_ratio"] < 0.4 or ag["white_text_ratio"] > 0.01 or ag["tiny_font_ratio"] > 0.01:
         anti_gaming_penalty = 0.05
     penalties = 0.02 * sum(v for v in fmt_flags.values()) + anti_gaming_penalty + order_penalty
-    penalties = min(0.20, penalties)  # cap penalty to avoid overkill
+    penalties = min(0.20, penalties)
 
-    # Compliance gates
+    # Gates
     location_req = extract_location_req(jd_text)
-
     loc_ok = True if not location_req else (location_req in resume_text.lower() or "remote" in jd_text.lower())
     auth_ok = True if not work_auth_req else (work_auth_req in resume_text.lower())
     degree_ok = True if not degree_req else (degree_req in resume_text.lower())
@@ -1297,20 +1341,22 @@ def compute_scores(
         "chronology_ok": chrono["gaps_over_6m"] == 0,
     }
 
-    # Scores per component (all 0..1)
+    # Scores
     s_hard = 0.55 * req_coverage + 0.20 * nth_cov + 0.25 * phrase_cov
     s_soft = soft_cov
     s_semantic = 0.5 * sem.get("bi_encoder_score", 0.0) + 0.5 * sem.get("cross_encoder_score", 0.0)
     s_experience_total = min(1.0, years_total / max(1.0, (min_years_required or 1.0)))
-    # per-skill coverage
-    per_skill_cov = 1.0
+
     if per_skill_years_req:
         coverages = []
         for k, need in per_skill_years_req.items():
             have = per_skill_years_est.get(k, 0.0)
             coverages.append(min(1.0, have / max(need, 0.0001)))
-        per_skill_cov = sum(coverages) / len(coverages)
-    s_per_skill_years = per_skill_cov
+        s_per_skill_years = sum(coverages) / len(coverages)
+    else:
+        # No per-skill expectations in JD: don't inflate this component
+        s_per_skill_years = 0.0
+
     s_recency = recency
     s_methodologies = meth_cov
     s_domain = domain_cov
@@ -1326,7 +1372,6 @@ def compute_scores(
                     0.2 * (1.0 if degree_ok else 0.0) +
                     0.2 * (1.0 if seniority_gate else 0.0))
 
-    # Weighted sum
     comps = {
         "hard_keywords": s_hard, "soft_keywords": s_soft, "semantic": s_semantic,
         "experience_total": s_experience_total, "per_skill_years": s_per_skill_years,
@@ -1335,12 +1380,10 @@ def compute_scores(
         "quality": s_quality, "seniority": s_seniority, "role_scope": s_role_scope,
         "stability": s_stability, "compliance": s_compliance
     }
-    # Normalize weights to sum to 1.0 (ignore penalties here)
     wsum = sum(max(0.0, weights.get(k, 0.0)) for k in comps.keys()) or 1.0
     score_raw = sum((weights.get(k, 0.0) / wsum) * max(0.0, min(1.0, v)) for k, v in comps.items())
     score = round(max(0, min(100, (score_raw - penalties) * 100)))
 
-    # Component scores (0..100)
     component_scores = {k: round(max(0.0, min(1.0, v)) * 100) for k, v in comps.items()}
     component_scores["formatting_penalty_pct"] = round(penalties * 100, 1)
 
@@ -1364,9 +1407,9 @@ def compute_scores(
         suggestions.append("Address employment gaps ≥ 6 months (brief explanation or projects/education).")
     if not gates["seniority_ok"]:
         suggestions.append("Align title/scope to JD seniority; emphasize leadership/ownership if relevant.")
-    if meth_cov < 0.5 and jd_methodologies:
+    if (jd_methodologies and s_methodologies < 0.5):
         suggestions.append("Call out methodologies (e.g., microservices, CI/CD, testing) in bullets with examples.")
-    if domain_cov < 0.5 and jd_domains:
+    if (jd_domains and s_domain < 0.5):
         suggestions.append("Highlight domain experience (e.g., fintech/adtech) with products, scale, or regulations.")
 
     t1 = time.perf_counter()
@@ -1427,18 +1470,26 @@ def evaluate_single(args: argparse.Namespace, tax: TaxonomyBundle, weights: Dict
         role.setdefault("methodologies", auto.methodologies)
         role.setdefault("role_scope", auto.role_scope)
 
-    resume_text = extract_pdf_text(args.pdf, use_ocr=args.use_ocr) if args.pdf else ""
-    resume_text = normalize_dates_text(resume_text)
+    # --------- Extract & normalize text (PRESERVE newlines for segmentation) ---------
+    resume_raw = extract_pdf_text(args.pdf, use_ocr=args.use_ocr) if args.pdf else ""
+    if not resume_raw.strip() and args.tex:
+        # Fallback to LaTeX source if PDF failed
+        resume_raw = read_textfile(args.tex)
 
-    if not resume_text.strip():
-        resume_text = strip_latex(read_textfile(args.tex)) if args.tex else ""
-    resume_text = normalize_bullets(normalize_ws(resume_text))
+    # Normalize PDF artifacts & hyphenation but KEEP line breaks
+    resume_seg = normalize_pdf_artifacts(resume_raw)
+    resume_seg = normalize_dates_text(resume_seg)
+    resume_seg = normalize_bullets(resume_seg)  # add helpful newlines before inline bullets
 
-    sections = split_sections(resume_text)
-    exps = segment_experiences(resume_text)
+    # "Flat" copy for token-level work / semantics
+    resume_flat = normalize_ws(resume_seg)
 
-    report = compute_scores(jd_text, resume_text, sections, exps, active_tax, role, args, args.pdf, weights, thresholds)
-    return report, resume_text, jd_text
+    # --------- Parse sections & experiences from the SEGMENTED copy ---------
+    sections = split_sections(resume_seg)
+    exps = segment_experiences(resume_seg)
+
+    report = compute_scores(jd_text, resume_flat, sections, exps, active_tax, role, args, args.pdf, weights, thresholds)
+    return report, resume_flat, jd_text
 
 def save_outputs_single(report: Dict[str, Any], args: argparse.Namespace, resume_text: str, jd_text: str) -> None:
     if args.out_json:
