@@ -1,20 +1,20 @@
 {
-  "version": "2.1.0",
+  "version": "2.2.0",
   "role_name": "unspecified",
-  "overall_score": 47,
+  "overall_score": 39,
   "component_scores": {
     "hard_keywords": 72,
     "soft_keywords": 100,
     "semantic": 0,
     "experience_total": 0,
-    "per_skill_years": 100,
-    "recency": 37,
+    "per_skill_years": 0,
+    "recency": 68,
     "methodologies": 100,
     "domain": 100,
     "breadth_depth": 0,
-    "impact": 58,
+    "impact": 53,
     "placement": 47,
-    "quality": 48,
+    "quality": 47,
     "seniority": 50,
     "role_scope": 100,
     "stability": 0,
@@ -64,22 +64,22 @@
     "aws": 0,
     "azure": 0,
     "cassandra": null,
-    "docker": null,
+    "docker": 0,
     "gcp": 0,
     "graphql": 0,
     "java": 0,
     "javascript": null,
-    "jwt": 0,
-    "kafka": null,
-    "kubernetes": null,
+    "jwt": null,
+    "kafka": 0,
+    "kubernetes": 0,
     "mongodb": null,
     "mysql": null,
     "oauth2": null,
-    "postgresql": null,
+    "postgresql": 0,
     "rest": 0,
-    "spring boot": null,
-    "spring cloud": null,
-    "sql": null
+    "spring boot": 0,
+    "spring cloud": 0,
+    "sql": 0
   },
   "sections_present": {
     "summary": true,
@@ -96,35 +96,35 @@
   },
   "quality": {
     "readability": {
-      "flesch_reading_ease": 12.59642857142859,
-      "smog_index": 17.40111272565924,
-      "coleman_liau_index": 19.797499999999996,
-      "avg_sentence_len": 12.02
+      "flesch_reading_ease": 11.760825852782801,
+      "smog_index": 17.440483870047718,
+      "coleman_liau_index": 19.989228007181328,
+      "avg_sentence_len": 24.916666666666668
     },
     "grammar_issues": 0
   },
   "anti_gaming": {
-    "top_token_ratio": 0.0528,
-    "bigram_unique_ratio": 0.9431,
-    "token_entropy": 7.9673,
+    "top_token_ratio": 0.0549,
+    "bigram_unique_ratio": 0.9511,
+    "token_entropy": 7.9231,
     "white_text_ratio": 0.0,
     "tiny_font_ratio": 0.0
   },
   "semantic": {
-    "bi_encoder_score": 0.511076807975769,
+    "bi_encoder_score": 0.5064769983291626,
     "cross_encoder_score": -5.93908166885376,
     "top_chunks": [
       [
-        "Adept at collaborating across teams and transforming data into actionable insights to deliver business value EDUCATION Bachelor of Computer Science, Pune University - 2017 - 2021 Course: Computer Science - CGPA: 9.1/10 Relevant Courses: Algorithms, Data Structures, Object\u2013Oriented software development process, Java, Python, Operating Sys\u2013 tems, Database Management Systems, Distributed Systems, Network Security, Big data SKILLS \u2022 Languages: Java, Python, Golang, SQL, Node.js \u2022 Frameworks: Spring Boot, Spring MVC, Spring Cloud, Django, Express.js, GraphQL \u2022 Cloud & Platforms: Google Cloud Platform, Amazon Web Services, Docker, Kubernetes, Serverless \u2022 Data Technologies: PostgreSQL, MySQL, MongoDB, Cassandra, Redis, Kafka \u2022 Tools & Practices: Git, JUnit, Mockito, Postman, CI/CD (Jenkins, GitHub Actions), RESTful APIs, OAuth EXPERIENCE SDE II, EPAM - Jul 2024 - Present Bangalore, Karnataka \u2022 Built customer analytics microservices on GCP using Spring Boot and Kafka to process millions of events daily.",
-        0.511076807975769
+        "Adept at collaborating across teams and transforming data into actionable insights to deliver business value EDUCATION Bachelor of Computer Science, Pune University - 2017 - 2021 Course: Computer Science - CGPA: 9.1/10 Relevant Courses: Algorithms, Data Structures, Object-Oriented software development process, Java, Python, Operating Systems, Database Management Systems, Distributed Systems, Network Security, Big data SKILLS \u2022 Languages: Java, Python, Golang, SQL, Node.js \u2022 Frameworks: Spring Boot, Spring MVC, Spring Cloud, Django, Express.js, GraphQL \u2022 Cloud & Platforms: Google Cloud Platform, Amazon Web Services, Docker, Kubernetes, Serverless \u2022 Data Technologies: PostgreSQL, MySQL, MongoDB, Cassandra, Redis, Kafka \u2022 Tools & Practices: Git, JUnit, Mockito, Postman, CI/CD (Jenkins, GitHub Actions), RESTful APIs, OAuth EXPERIENCE SDE II, EPAM - Jul 2024 - Present Bangalore, Karnataka \u2022 Built customer analytics microservices on GCP using Spring Boot and Kafka to process millions of events daily.",
+        0.5064769983291626
       ],
       [
-        "\u2022 Customers: Collaborated with cross\u2013functional and customer\u2013facing teams to design and deploy POCs that enhanced product adoption.",
-        0.42711588740348816
+        "\u2022 Customers: Collaborated with cross-functional and customer-facing teams to design and deploy POCs that enhanced product adoption.",
+        0.4354351758956909
       ],
       [
-        "\u2022 Features: Delivered features such as real\u2013time operational capacity estimation, async database writer service, high avail\u2013 ability, geo redundancy, multi\u2013cluster support, and licensing by subscriber count using REST APIs, Aerospike, and microservice patterns.",
-        0.3067244291305542
+        "\u2022 Features: Delivered features such as real-time operational capacity estimation, async database writer service, high availability, geo redundancy, multi-cluster support, and licensing by subscriber count using REST APIs, Aerospike, and microservice patterns.",
+        0.2949461340904236
       ],
       [
         "\u2022 Developed secure RESTful and GraphQL APIs in Java and Node.js, improving data accessibility for stakeholders by 30%.",
@@ -151,8 +151,8 @@
         0.2477223426103592
       ],
       [
-        "ADITYA BICHAVE (+91) 7798497481 \u22c4Bangalore, India aditya.bichave@gmail.com https://www.linkedin.com/in/aditya\u2013bichave/ BRIEF SUMMARY Results\u2013driven Software Engineer with 4+ years of experience designing scalable microservices, data platforms, and customer\u2013centric web applications.",
-        0.24254414439201355
+        "\u2022 Infra: Led microservice migration and memory optimization, achieving 4X performance improvement while mentoring the team.",
+        0.2373514473438263
       ]
     ]
   },
@@ -161,14 +161,13 @@
       "aditya.bichave@gmail.com"
     ],
     "phones": [
-      "+91) 7798497481",
-      "2017\n- 2021"
+      "(+91) "
     ],
     "linkedin": true,
     "github": false,
     "portfolio": false,
     "urls": [
-      "https://www.linkedin.com/in/aditya\u2013bichave/"
+      "https://www.linkedin.com/in/aditya-bichave/"
     ]
   },
   "stability": {
@@ -185,10 +184,9 @@
     "cert_count": 0
   },
   "suggestions": [
-    "Surface recent projects using the required stack (last 12\u201324 months) near the top.",
     "Mention core JD skills in Summary and Experience, not only in the Skills list."
   ],
   "timings_s": {
-    "scoring": 20.951
+    "scoring": 7.425
   }
 }
